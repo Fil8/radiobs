@@ -1,6 +1,6 @@
 ## Radiobs
 
-suite of tools for radioastronomy data analysis
+tools for radioastronomy data analysis
 
 ### Installation
 

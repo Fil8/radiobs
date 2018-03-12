@@ -8,10 +8,12 @@ class kk:
 	'''
 	Useful constants called by other radiobs classes as kk.constant
 	'''
+
 	#converstions
 	RAD2DEG=180./np.pi
 	PC=3.08567758E18    #cm
 	JANSKY=1e-23        #erg/scm2Hz
+	
 	#constants
 	HI=1.42040575177e+09 #Hz
 	TSPIN=100            #K
@@ -22,9 +24,16 @@ class kk:
 	CHI=2.36E5
 	MP=1.67492728E-24   #g
 	SIGMAT=6.66524E-25  #cm2
+	
 	#convert to column density of HI
 	KnhiABS = 1.8216E18
 	KnhiEM = 3.1E17
+	
 	#magnitudes & factors for Tully-Fisher
 	M26 = -23.33
 	STULLY = -9.64
+
+	#cosmological constants
+	h0 = 70
+	omega_l = 0.7 
+	omega_m = 0.3

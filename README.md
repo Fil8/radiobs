@@ -13,3 +13,16 @@ Add `<path to radiobs>` to `PYTHONPATH`
   
 ### Usage
  In `python` environment type `import radiobs`
+ 
+ find which classes are available.
+ 
+ `radiobs.__dict__.keys()`
+ 
+ We choose to determine the expected frequency of the HI line at a given redshift, we need  `hiline` contained in the class `hi`. Let's load the class:
+ 
+ `hi = radiobs.hi()`
+ 
+  use the module:
+ `freq = hi.hiline(z=0.1)`
+
+ 

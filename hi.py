@@ -35,20 +35,9 @@ class hi:
 	'''
 
 	def __init__(self):
-		# self.hi=HI
-		# self.m26=M26
-		# self.s_tully= STULLY
-		# self.knhi= KnhiA
-		# self.nhiem= KnhiE
-		# self.T=TSPIN
-		# self.mhi=MHI
-		# self.msun=MSUN
-		# self.chi=CHI
-		# self.mp=MP
 
 		self.hi = kk.HI
-		self.m26 = kk.M26
-		self.s_tully = kk.STULLY
+		self.c = kk.C
 		self.knhi = kk.KnhiABS
 		self.nhiem = kk.KnhiEM
 		self.T = kk.TSPIN
@@ -68,8 +57,8 @@ class hi:
 			hi.freq: frequency of the HI line in MHz
 		'''
 
-		freq=self.HI/(1+z)/1e06	#MHz
-		velocity=self.C*((self.HI-freq)/freq)/1e5	#km/s
+		freq=self.hi/(1+z)/1e06	#MHz
+		velocity=self.C*((self.hi-freq)/freq)/1e5	#km/s
 
 		print 'HI expected frequency = '+str(round(freq,3))+' MHz'
 		print 'HI systemic velocity = '+str(round(velocity,3))+' km/s'

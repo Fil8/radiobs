@@ -5,43 +5,57 @@ __email__ = "filippo.maccagni@gmail.com"
 import sys,string,os,math
 import numpy as np
 import Cosmo as c
+from kk import *
 from astropy import units
 from astropy.io import fits
 
-#define constants
-RAD2DEG=180./math.pi
-HI=1.42040575177e+09 #Hz
-TSPIN=100            #K
-MSUN=1.98855e33      #g
-MHI=1.6749E-24       #g
-CHI=2.36E5
-PC=3.08567758E18    #cm
-JANSKY=1e-23        #erg/scm2Hz
-C=2.99792458E10     #cm/s
-G=6.6742E-08        #cm3kg-1s-1      
-MP=1.67492728E-24   #g
-SIGMAT=6.66524E-25  #cm2
-
-KnhiA = 1.8216E18
-KnhiE = 3.1E17
-M26 = -23.33
-STULLY = -9.64
-
-
-
 class hi:
+	'''
+	+----+
+	  hi
+	+----+
+	  Tools to analyze the HI spectral line
+		- hiline 
+			frequency of the HI given a redshift
+		- tau_abs
+			converts absorbed flux in optical depth
+		- nhi_abs
+			determines the column density from optical depth
+			assuming temperature TSPIN = 100
+		- beam_area
+			determines the area of the beam of the observations
+		- mhi_abs
+			mass of the absorbed HI
+		- nhi_em
+			column density from emission line (and beam of observation)
+		- mhi_em
+			mass of HI from emission line
+		- mhi_flux
+			mass of HI from integrated flux and redshift of source
+	'''
 
 	def __init__(self):
-		self.hi=HI
-		self.m26=M26
-		self.s_tully= STULLY
-		self.knhi= Knhi
-		self.nhiem= KnhiE
-		self.T=TSPIN
-		self.mhi=MHI
-		self.msun=MSUN
-		self.chi=CHI
-		self.mp=MP
+		# self.hi=HI
+		# self.m26=M26
+		# self.s_tully= STULLY
+		# self.knhi= KnhiA
+		# self.nhiem= KnhiE
+		# self.T=TSPIN
+		# self.mhi=MHI
+		# self.msun=MSUN
+		# self.chi=CHI
+		# self.mp=MP
+
+		self.hi = kk.HI
+		self.m26 = kk.M26
+		self.s_tully = kk.STULLY
+		self.knhi = kk.KnhiABS
+		self.nhiem = kk.KnhiEM
+		self.T = kk.TSPIN
+		self.mhi = kk.MHI
+		self.msun = kk.MSUN
+		self.chi = kk.CHI
+		self.mp = kk.MP
 
 	def hiline(self,z):
 		'''
@@ -54,10 +68,10 @@ class hi:
 			hi.freq: frequency of the HI line in MHz
 		'''
 
-		freq=self.hi/(1+z)/1e06	#MHz
-		velocity=C*((self.hi-self.freq)/self.freq)/1e5	#km/s
+		freq=self.HI/(1+z)/1e06	#MHz
+		velocity=self.C*((self.HI-freq)/freq)/1e5	#km/s
 
-		print 'HI expected frequency = '+str(round(freq,3))+' mJy/beam'
+		print 'HI expected frequency = '+str(round(freq,3))+' MHz'
 		print 'HI systemic velocity = '+str(round(velocity,3))+' km/s'
 
 		return freq, velocity
@@ -78,7 +92,7 @@ class hi:
 
 		return tau
 		
-	def nhi_abs(self,tau,dv):
+	def nhi_abs(tau,dv):
 		'''
 		Estimates the column density of the absorption line
 		INPUT
@@ -88,13 +102,13 @@ class hi:
 			hi.nhi_abs: column density of the absorption line in cm-2	
 		'''
 		
-		nhiabs=self.knhi*self.T*tau*dv
+		nhiabs=kk.knhi*kk.T*tau*dv
 		
 		print 'N(HI) = '+str(round(nhiabs,3))+' cm-2'
 
 		return nhiabs
 
-	def beam_area(self, bx,by,z):
+	def beam_area(bx,by,z):
 		'''
 		Estimates the area of the beam of the observations
 		INPUT
@@ -112,9 +126,9 @@ class hi:
 
 		return beamarea
 
-	def mhi_abs(self,nhi_abs,area):
+	def mhi_abs(nhi_abs,area):
 		'''
-		Estimates the column density of the absorption line
+		Estimates the mass of the absorbed HI
 		INPUT
 			nhi_abs: column density of the absorption line in cm-2	
 			area: area over which the column density is integrated in cm	

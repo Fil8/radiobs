@@ -4,6 +4,7 @@ __email__ = "filippo.maccagni@gmail.com"
 
 import sys,string,os,math
 import numpy as np
+from kk import *
 from radiobs import Cosmo
 from astropy.io import fits
 from photutils.isophote import EllipseGeometry, Ellipse, build_ellipse_model
@@ -13,22 +14,25 @@ from photutils import EllipticalAperture
 
 
 class optical:
+	'''
+	+----+
+	  optical
+	+----+
+	  Tools to for optical observations
+		- abs_mag 
+			convert to absolute magnitude
+		- vflat_tf
+			determine flat part of rotation curve using TullyFisher in k-band
+		- iso_fit
+			isophotal fitting of optical 2d image in fits format
+	'''
+
 	
 	def __init__(self):
 		#define constants
-		RAD2DEG=180./math.pi
-		HI=1.42040575177e+09 #Hz
-		TSPIN=100            #K
-		MSUN=1.98855e33      #g
-		MHI=1.6749E-24       #g
-		CHI=2.36E5
-		PC=3.08567758E18    #cm
-		JANSKY=1e-23        #erg/scm2Hz
-		C=2.99792458E10     #cm/s
-		G=6.6742E-08        #cm3kg-1s-1      
-		MP=1.67492728E-24   #g
-		SIGMAT=6.66524E-25  #cm2
-
+		self.PC= kk.PC 
+		self.s_tully = kk.STULLY
+		self.m26 = kk.M26
 
 	def abs_mag(self,m,z):
 		'''
@@ -41,7 +45,7 @@ class optical:
 		'''			
 
 		dl=c.lum_dist(z)
-		M=m-5*(math.log10(dl/3.085678e18)-1)
+		M=m-5*(np.log10(dl/self.PC)-1)
 		
 		return M
 

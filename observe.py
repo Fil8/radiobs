@@ -5,6 +5,7 @@ __email__ = "filippo.maccagni@gmail.com"
 import sys,string,os,math
 import numpy as np
 import Cosmo as c
+from kk import *
 import aipy
 import ephem, datetime
 from astropy import units as u
@@ -12,21 +13,28 @@ from astropy.coordinates import Angle, AltAz, SkyCoord, EarthLocation
 from astropy.time import Time, TimeDelta
 
 class observe:
+	'''
+	+----+
+	  observe
+	+----+
+		Tools providing info on radio observations
+	 	
+	 	- pbeam_FWHM
+	 		full-width at half maximum iof the primary beam of a MeerKAT observation
+	 	- theo_rms
+	 		theoretical r.m.s. for a MeerKAT or Apertif observation, 
+	 		given the number of antennas and integration time
+	 	- local_standard_time
+	 		LST of a Westerbork observation given the UCT time of the observation
+	 	- alt_az 
+	 		ALT/AZ of an observed source in a MIRIAD format observation
+	'''
+
+
 	def __init__(self):
 
-		#define constants
-		self.RAD2DEG=180./math.pi
-		self.HI=1.42040575177e+09 #Hz
-		self.TSPIN=100            #K
-		self.MSUN=1.98855e33      #g
-		self.MHI=1.6749E-24       #g
-		self.CHI=2.36E5
-		self.PC=3.08567758E18    #cm
-		self.JANSKY=1e-23        #erg/scm2Hz
-		self.C=2.99792458E10     #cm/s
-		self.G=6.6742E-08        #cm3kg-1s-1      
-		self.MP=1.67492728E-24   #g
-		self.SIGMAT=6.66524E-25  #cm2
+		#define constants used in this module
+		self.C= kk.C
 
 	def pbeam_FWHM(self,telescope, obs_freq):
 
@@ -175,35 +183,3 @@ class observe:
 		#e_lha = e_lha-ra
 
 		return obs_altasz
-
-		def theo_rms(self,telescope,nant,bw,int_time):
-			'''
-			Determines the predicted noise per frequency channel for the perfomance of a given telescope
-			int_time is in seconds
-			bw is in ?????
-			'''
-			
-			if telescope == 'meerkat' or telescope == 'MeerKAT' or telescope == 'meerKAT' or telescope == 'meer':
-				coreta = 0.88
-				tsys = 100.
-				jyperk = 2.
-			elif telescope == 'apertif' or telescope == 'Apertif' or telescope == 'APERTIF' or telescope == 'ape':
-				coreta = 0.88
-				tsys = 100.
-				jyperk = 2.
-			else:
-				print 'Telescope not known'
-				return 0
-
-			tsys = tsys*coreta
-			noise_freq = tsys*jyperk/np.sqrt(nant*(nant-1)*np.abs(bw)*int_time)
-
-			noise_freq *= 1e3 #mJy/beam
-
-			print 'Expected noise per channel = '+str(round(noise_freq,3))+' mJy/beam'
-
-			return noise_freq 
-
-
-
-			

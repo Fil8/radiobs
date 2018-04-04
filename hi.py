@@ -65,7 +65,7 @@ class hi:
 
 		return freq, velocity
 
-	def tau_abs(self,scont,sabs):
+	def optical_depth(self,scont,sabs):
 		'''
 		Estimates the optical depth of an absorption line
 		INPUT
@@ -75,9 +75,10 @@ class hi:
 			hi.tau: optical depth of the line	
 		'''
 
-		tau=np.log(1-(sabs/scont))
+		tau=np.log(1.-(-sabs/scont))
 		
-		print 'Optical depth = '+str(round(tau,3))
+		if tau.size == 1:
+			print 'Optical depth = '+str(round(tau,3))
 
 		return tau
 		

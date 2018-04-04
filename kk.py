@@ -37,3 +37,7 @@ class kk:
 	h0 = 70
 	omega_l = 0.7 
 	omega_m = 0.3
+
+	#HI
+	MILKY_LEFT = -30.
+	MILKY_RIGHT = +30.

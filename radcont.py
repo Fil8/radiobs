@@ -13,6 +13,7 @@ from reproject import reproject_interp, reproject_exact
 from astropy.utils.data import get_pkg_data_filename
 from astropy.coordinates import Angle
 from astropy import units as u
+import montage_wrapper as montage
 
 class radcont:
 	'''
@@ -104,8 +105,6 @@ class radcont:
 		return total_flux, pix_area
 
 
-
-
 	def mask_cont_forflux(self, maskdata, maskhead, cutoff, region):
 
 		# set polygonal mask from ds9 region
@@ -174,13 +173,19 @@ class radcont:
 
 		if fluxtype == 'exact':
 			newslave, footprint = reproject_exact(slave, base.header)
+			base.header['BMAJ'] = slave.header['BMAJ']
+			base.header['BMIN'] = slave.header['BMIN']
+			fits.writeto(outname, newslave, base.header, clobber=True)
 		elif fluxtype == 'fast':
 			newslave, footprint = reproject_interp(slave, base.header)
+			base.header['BMAJ'] = slave.header['BMAJ']
+			base.header['BMIN'] = slave.header['BMIN']
+			fits.writeto(outname, newslave, base.header, clobber=True)
+		elif fluxtype == 'montage':
+			montage.mGetHdr(basename,headername)
+			montage.mProject(slavename,outname,headername)
 
-		base.header['BMAJ'] = slave.header['BMAJ']
-		base.header['BMIN'] = slave.header['BMIN']
 
-		fits.writeto(outname, newslave, base.header, clobber=True)
 
 		return 0
 

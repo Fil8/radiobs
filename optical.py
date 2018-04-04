@@ -18,7 +18,7 @@ class optical:
 	+----+
 	  optical
 	+----+
-	  Tools to for optical observations
+	  Tools for optical observations
 		- abs_mag 
 			convert to absolute magnitude
 		- vflat_tf
@@ -29,7 +29,7 @@ class optical:
 
 	
 	def __init__(self):
-		#define constants
+
 		self.PC= kk.PC 
 		self.s_tully = kk.STULLY
 		self.m26 = kk.M26

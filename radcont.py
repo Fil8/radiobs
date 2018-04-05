@@ -119,6 +119,23 @@ class radcont:
 		return maskdata
 
 	def reproj_image(self,basename,slavename,outname,fluxtype):
+		'''
+		Merge continuum images in one single cube
+		INPUT
+			basename : list of paths of continuum images to merge
+			slavename : list of paths of continuum images to merge			
+			outname: 
+			fluxtype: 
+		OUTPUT
+			in final directory of cubelist
+			outcube:  full path output cube]
+			outtable: table with major and minor axis of PSF/dirty beam of continuum image
+			          (only if PSF are different from eachother)
+		
+		RETURN
+			cubenames: list filenames of images that have been concatenated
+			
+		'''	
 
 
 		base = fits.open(basename)[0]
@@ -160,16 +177,15 @@ class radcont:
 		elif 'CDELT1' in slave.header:
 			pix_area = -float(slave.header['CDELT1'])*float(slave.header['CDELT2'])
 
-		bmaj = float(slave.header['BMAJ'])
-		bmin = float(slave.header['BMIN'])
-
+		if 'BMAJ' in slave.header:
+			bmaj = float(slave.header['BMAJ'])
+			bmin = float(slave.header['BMIN'])
+		else:
+			bmaj = 0.0
+			bmin = 0.0
 		bmaj = Angle(bmaj,unit=u.degree)
 		bmin = Angle(bmin,unit=u.degree)
 		
-		beam_area = 2.*np.pi*bmaj.degree/2.35482*bmin.degree/2.35482
-		number_pix_beam= beam_area/pix_area		
-
-		slave.data = np.divide(slave.data,number_pix_beam)
 
 		if fluxtype == 'exact':
 			newslave, footprint = reproject_exact(slave, base.header)
@@ -182,12 +198,28 @@ class radcont:
 			base.header['BMIN'] = slave.header['BMIN']
 			fits.writeto(outname, newslave, base.header, clobber=True)
 		elif fluxtype == 'montage':
+			headername = 'tmp.hdr'
 			montage.mGetHdr(basename,headername)
 			montage.mProject(slavename,outname,headername)
+		
+		elif fluxtype == 'healpix':
+			fitsname = 'tmp.fits'
+			headername = 'tmp.hdr'
+			a = montage.mGetHdr(basename,headername)
+			print a
+			command = 'HPXcvt '+slavename+' '+fitsname
+			os.system(command)
+			#montage.HPXcvt(slavename,fitsname)
+			command = 'mProject '+fitsname+' '+outname+' '+headername
+			#montage.mProject(slavename,outname,headername)
+			os.system(command)
+			os.remove(fitsname)
+			os.remove(headername)
 
 
+		return bmaj, bmin
 
-		return 0
+
 
 
 

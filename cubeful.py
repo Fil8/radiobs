@@ -11,6 +11,7 @@ from astropy import units as u
 from astropy import wcs
 from astropy.coordinates import Angle
 from astropy import units as u
+from astropy.table import Table
 
 class cubeful:
 	'''
@@ -154,26 +155,59 @@ class cubeful:
 		INPUT
 			cubelist : list of paths of continuum images to merge
 		OUTPUT
-			outcube: full path output cube
+			in final directory of cubelist
+			outcube: full path output cube]
+			outtable: table with major and minor axis of PSF/dirty beam of continuum images
+					  (only if PSF are different from eachother)
+		
+		RETURN
+			table: table of beams
+			
 		'''				
 
-		base = fits.open(cubelist[0])
-		basedata = base[0].data
-		baseheader =  base[0].header
+		#size of cube, since all continuum images may not have same NAXIS1/2 lenght
+		#but must have same pixel size, otherwise use racont.reproj_image
+		lenaxis=[]
+		for i in xrange(0,len(cubelist)):
+			base = fits.open(cubelist[0])
+			basedata = base[0].data
+			baseheader =  base[0].header
+			lenaxis.append(float(baseheader['NAXIS2']))
 		
+
+		cubeshape = np.min(lenaxis)
+		print cubeshape
+
 		cube = fits.PrimaryHDU()
 
-		cube.data = np.zeros([len(cubelist),basedata.shape[0],basedata.shape[1]])
+		cube.data = np.zeros([len(cubelist),cubeshape,cubeshape])
 
 		bmin = []
 		bmaj = []
 		cubenames = []
-		#base.close()
+		print cube.data.shape
 		for i in xrange(0,len(cubelist)):
 			base_tmp = fits.open(cubelist[i])[0]
-			cube.data[i,:,:] = base_tmp.data[:,:]
+			print base_tmp.data.shape
+
+			y_diff = base_tmp.data.shape[0] - cube.data.shape[1]
+			x_diff = base_tmp.data.shape[1] - cube.data.shape[2]
+	
+			y_appr =  y_diff/2 + y_diff/2		
+			x_appr =  x_diff/2 + x_diff/2		
+			print y_diff,y_appr,x_diff,x_appr
+			if y_diff == y_appr and x_diff == x_appr:	
+				cube.data[i,:,:] = base_tmp.data[y_diff/2:base_tmp.data.shape[0]-y_diff/2,
+											x_diff/2:base_tmp.data.shape[1]-x_diff/2]
+			else:
+				y_newdiff = y_diff-y_appr
+				x_newdiff = x_diff-x_appr
+				cube.data[i,:,:] = base_tmp.data[y_diff/2:base_tmp.data.shape[0]-y_diff/2-y_newdiff,
+											x_diff/2:base_tmp.data.shape[1]-x_diff/2-x_newdiff]
+
+
+
 			cubename = string.split(cubelist[i],'/')
-			print cubename
 			cubenames.append(cubename[-1])
 			bmin.append(base_tmp.header['BMIN'])
 			bmaj.append(base_tmp.header['BMAJ'])
@@ -185,23 +219,21 @@ class cubeful:
 		cube.header['CDELT1'] = baseheader['CDELT2']
 		cube.header['CRVAL1'] = baseheader['CRVAL2']		
 		cube.header['CTYPE1'] = baseheader['CTYPE1']		
-
 		cube.header['CRPIX2'] = baseheader['CRPIX2']
 		cube.header['CDELT2'] = baseheader['CDELT2']
 		cube.header['CRVAL2'] = baseheader['CRVAL2']
 		cube.header['CTYPE2'] = baseheader['CTYPE2']		
-
-
 		cube.header['CTYPE3'] = 'CHAN'
-		print cube.header
+
 		fits.writeto(outcube,cube.data,cube.header,overwrite=True)
+		
 		outtablenames = string.split(outcube,'.fits')
 		outtable = outtablenames[0]+'_beams.txt'
-
 		ascii.write([cubenames, bmin, bmaj], outtable, names=['ID', 'bmin_deg', 'bmaj_deg'])
+		t = Table([cubenames, bmin, bmaj], names = ['ID', 'bmin_deg', 'bmaj_deg'] )
 
 
-		return cubenames
+		return t
 
 
 

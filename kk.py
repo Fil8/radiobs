@@ -2,7 +2,13 @@ __author__ = "Filippo Maccagni"
 __copyright__ = "Fil8"
 __email__ = "filippo.maccagni@gmail.com"
 
+
+import os, sys, string
 import numpy as np
+from prettytable import PrettyTable
+from astropy.io import ascii
+
+
 
 class kk:
 	'''
@@ -41,3 +47,37 @@ class kk:
 	#HI
 	MILKY_LEFT = -30.
 	MILKY_RIGHT = +30.
+
+
+	def tablefy(self, tablename, columns, columnames):
+		'''
+		Print pretty table out of array of columnames and columns
+		INPUT
+			tablename : name of outputable
+			column: array with data of columns, shape (len(columnames),data)
+			columnames: list of names of columns
+		OUTPUT
+			x: table in txt format in tablename file
+		RETURN
+			x: table in PrettyTable format
+
+		'''	
+		x = PrettyTable()
+
+
+		for i in xrange(0,len(columnames)):
+
+			x.add_column(columnames[i],columns[i,:])
+
+		basename = string.split(tablename,'.')
+		datatmp = x.get_html_string()
+		htmltable = basename[0]+'.html'
+		with open(htmltable, 'wb') as f:
+			f.write(datatmp)
+
+		datatmp = ascii.read(htmltable, format='html')
+		ascii.write(datatmp,tablename,format='csv',names = datatmp.dtype.names)
+		os.remove(htmltable)
+		print x
+
+		return x

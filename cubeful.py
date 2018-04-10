@@ -167,24 +167,31 @@ class cubeful:
 
 		#size of cube, since all continuum images may not have same NAXIS1/2 lenght
 		#but must have same pixel size, otherwise use racont.reproj_image
-		lenaxis=[]
+		len_yaxis=[]
+		len_xaxis=[]
+		
 		for i in xrange(0,len(cubelist)):
-			base = fits.open(cubelist[0])
+			base = fits.open(cubelist[i])
 			basedata = base[0].data
 			baseheader =  base[0].header
-			lenaxis.append(float(baseheader['NAXIS2']))
-		
+			len_yaxis.append(float(baseheader['NAXIS2']))
+			len_xaxis.append(float(baseheader['NAXIS1']))
+			
+			print float(baseheader['NAXIS2'])
 
-		cubeshape = np.min(lenaxis)
-		print cubeshape
+		cubeshape_y = np.min(len_yaxis)
+		cubeshape_x = np.min(len_xaxis)
+
+		print cubeshape_x, cubeshape_y
 
 		cube = fits.PrimaryHDU()
 
-		cube.data = np.zeros([len(cubelist),cubeshape,cubeshape])
+		cube.data = np.zeros([len(cubelist),cubeshape_y,cubeshape_x])
 
 		bmin = []
 		bmaj = []
 		cubenames = []
+
 		print cube.data.shape
 		for i in xrange(0,len(cubelist)):
 			base_tmp = fits.open(cubelist[i])[0]
@@ -204,8 +211,6 @@ class cubeful:
 				x_newdiff = x_diff-x_appr
 				cube.data[i,:,:] = base_tmp.data[y_diff/2:base_tmp.data.shape[0]-y_diff/2-y_newdiff,
 											x_diff/2:base_tmp.data.shape[1]-x_diff/2-x_newdiff]
-
-
 
 			cubename = string.split(cubelist[i],'/')
 			cubenames.append(cubename[-1])

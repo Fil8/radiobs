@@ -9,7 +9,7 @@ from kk import *
 from astropy.io import fits
 from astropy import units as u
 from astropy import wcs
-from reproject import reproject_interp, reproject_exact
+from reproject import reproject_interp, reproject_exact, reproject_from_healpix
 from astropy.utils.data import get_pkg_data_filename
 from astropy.coordinates import Angle
 from astropy import units as u
@@ -37,7 +37,7 @@ class radcont:
 
 		# set polygonal mask from ds9 region
 		r = pyregion.open(region).as_imagecoord(maskhead)
-		shape = (maskhead['NAXIS1'], maskhead['NAXIS2'])
+		shape = (maskhead['NAXIS2'], maskhead['NAXIS1'])
 		m = r.get_mask(shape=shape)
 		maskdata[m==False] = np.nan
 
@@ -110,6 +110,7 @@ class radcont:
 		# set polygonal mask from ds9 region
 		r = pyregion.open(region).as_imagecoord(maskhead)
 		shape = (maskhead['NAXIS1'], maskhead['NAXIS2'])
+		print shape
 		m = r.get_mask(shape=shape)
 		maskdata[m==False] = np.nan
 
@@ -117,6 +118,54 @@ class radcont:
 		maskdata[maskdata>=cutoff] = 1.0		
 		
 		return maskdata
+
+
+	def read_psf(self, filename):
+		'''
+		Read psf dimensions from BMAJ, BMIN keywords of fits file
+		INPUT
+			filename : name of .fits image/cube
+		OUTPUT
+			[filename,bmin,bmaj,cd1,cd2,naxis1,naxis2]: numpy array with filename, major/minor axis 
+														of psf, pixel_size, shape of .fits
+			bmaj and bmin are given in arcminutes
+		'''		
+		filelist = fits.open(filename)
+		filehead = filelist[0].header
+		filedata = filelist[0].data
+		
+		bmaj = 0
+		bmin = 0
+		cd1 = 0
+		cd2 = 0
+		naxis1 = 0
+		naxis2 = 0
+
+		if 'BMAJ' in filehead:
+			bmaj = float(filehead['BMAJ'])
+		if 'BMIN' in filehead:
+			bmin = float(filehead['BMIN'])
+		if 'CDELT1' in filehead:
+			cd1 = float(filehead['CDELT1'])
+		elif 'CD1_1' in filehead:
+			cd1 = float(filehead['CD1_1'])
+		if 'CDELT2' in filehead:
+			cd2 = float(filehead['CDELT2'])
+		elif 'CD2_2' in filehead:
+			cd2 = float(filehead['CD2_2'])
+
+		naxis1 = float(filehead['NAXIS1'])
+		naxis2 = float(filehead['NAXIS2'])
+
+		cd1 = Angle(cd1, unit=u.degree)
+		cd2 = Angle(cd2, unit=u.degree)
+		bmaj = Angle(bmaj,unit=u.degree)
+		bmin = Angle(bmin,unit=u.degree)
+
+		array_tmp = [bmaj.arcminute, bmin.arcminute, cd1.arcsecond, cd2.arcsecond, naxis1, naxis2]
+
+		return array_tmp
+
 
 	def reproj_image(self,basename,slavename,outname,fluxtype):
 		'''
@@ -130,7 +179,7 @@ class radcont:
 			in final directory of cubelist
 			outcube:  full path output cube]
 			outtable: table with major and minor axis of PSF/dirty beam of continuum image
-			          (only if PSF are different from eachother)
+					  (only if PSF are different from eachother)
 		
 		RETURN
 			cubenames: list filenames of images that have been concatenated
@@ -171,42 +220,45 @@ class radcont:
 			del slave.header['PC2_3']
 			del slave.header['PC3_3']
 
-		if 'CD1_1' in slave.header:
-			pix_area = -float(slave.header['CD1_1'])*float(slave.header['CD2_2'])
+		# if 'CD1_1' in slave.header:
+		# 	pix_area = -float(slave.header['CD1_1'])*float(slave.header['CD2_2'])
 		
-		elif 'CDELT1' in slave.header:
-			pix_area = -float(slave.header['CDELT1'])*float(slave.header['CDELT2'])
+		# elif 'CDELT1' in slave.header:
+		# 	pix_area = -float(slave.header['CDELT1'])*float(slave.header['CDELT2'])
 
-		if 'BMAJ' in slave.header:
-			bmaj = float(slave.header['BMAJ'])
-			bmin = float(slave.header['BMIN'])
-		else:
-			bmaj = 0.0
-			bmin = 0.0
-		bmaj = Angle(bmaj,unit=u.degree)
-		bmin = Angle(bmin,unit=u.degree)
+		# if 'BMAJ' in slave.header:
+		# 	bmaj = float(slave.header['BMAJ'])
+		# 	bmin = float(slave.header['BMIN'])
+		# else:
+		# 	bmaj = 0.0
+		# 	bmin = 0.0
+		# bmaj = Angle(bmaj,unit=u.degree)
+		# bmin = Angle(bmin,unit=u.degree)
 		
 
 		if fluxtype == 'exact':
 			newslave, footprint = reproject_exact(slave, base.header)
-			base.header['BMAJ'] = slave.header['BMAJ']
-			base.header['BMIN'] = slave.header['BMIN']
+			#base.header['BMAJ'] = slave.header['BMAJ']
+			#base.header['BMIN'] = slave.header['BMIN']
+			fits.writeto(outname, newslave, base.header, clobber=True)
+		if fluxtype == 'healpix':
+			filename_in = get_pkg_data_filename(slavename)
+			newslave, footprint = reproject_from_healpix(filename_in, base.header)
 			fits.writeto(outname, newslave, base.header, clobber=True)
 		elif fluxtype == 'fast':
 			newslave, footprint = reproject_interp(slave, base.header)
-			base.header['BMAJ'] = slave.header['BMAJ']
-			base.header['BMIN'] = slave.header['BMIN']
+			#base.header['BMAJ'] = slave.header['BMAJ']
+			#base.header['BMIN'] = slave.header['BMIN']
 			fits.writeto(outname, newslave, base.header, clobber=True)
 		elif fluxtype == 'montage':
 			headername = 'tmp.hdr'
 			montage.mGetHdr(basename,headername)
 			montage.mProject(slavename,outname,headername)
-		
-		elif fluxtype == 'healpix':
+			os.remove(headername)
+		elif fluxtype == 'montage_healpix':
 			fitsname = 'tmp.fits'
 			headername = 'tmp.hdr'
 			a = montage.mGetHdr(basename,headername)
-			print a
 			command = 'HPXcvt '+slavename+' '+fitsname
 			os.system(command)
 			#montage.HPXcvt(slavename,fitsname)
@@ -217,7 +269,7 @@ class radcont:
 			os.remove(headername)
 
 
-		return bmaj, bmin
+		return 0
 
 
 

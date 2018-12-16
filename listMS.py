@@ -92,12 +92,12 @@ class msinfo:
 		self.chan_widths = self.channelWidths[0][0]
 		self.lowfreq = float(self.channelFreqs[0][0])
 		self.highfreq = float(self.channelFreqs[-1][-1])
-
 		spw.close()
 
-		self.logger.info("\tChannel Width [kHz]:\t"+str(cfg_par['rfi']['chan_widths']/1e3))
-		self.logger.info("\tStart         [GHz]:\t"+str(cfg_par['rfi']['lowfreq']/1e9))
-		self.logger.info("\tEnd           [GHz]:\t"+str(cfg_par['rfi']['highfreq']/1e9)+'\n')
+		self.logger.info('\t\t Total number of channels = '+ str(self.chan_Widths.shape[1]))
+		self.logger.info("\tChannel Width [kHz]:\t"+str(self.chan_widths/1e3))
+		self.logger.info("\tStart         [GHz]:\t"+str(self.lowfreq/1e9))
+		self.logger.info("\tEnd           [GHz]:\t"+str(self.highfreq/1e9)+'\n')
 
 
 		#determine start and end date

@@ -11,17 +11,17 @@ class msinfo:
 	def __init__(self):
 
 		self.rootdir = os.getcwd()+'/'
-    		self.filename=sys.argv[1]
+
 
         	#set logger
         	logging.basicConfig(level=logging.INFO)
 		self.logger = logging.getLogger(__name__)  
 		
-    	def time_chunk(self):
+    	def time_chunk(nameFile):
 
 		self.logger.info("\t ...  Observing time Info ... \n")
 
-		t=tables.table(self.msfile)
+		t=tables.table(nameFile)
 		self.time = t.getcol('TIME')
 		t.close()
 
@@ -47,7 +47,7 @@ class msinfo:
         
 		return times,startdate,enddate
   	
-	def listMS(self):
+	def listMS(self,nameFile):
 		'''
 		Loads important columns from MS file
 		From MS: 
@@ -60,7 +60,7 @@ class msinfo:
 
 		self.logger.info("\t ... Fields, Antennas & Bandwidth Info ...\n")
 
-		self.msfile = self.filename
+		self.msfile = nameFile
 		
 		fields=tables.table(self.msfile+'/FIELD')
 		self.fieldNames = fields.getcol('NAME')
@@ -110,6 +110,6 @@ class msinfo:
 		return 0
 	
 listms=msinfo()
-msinfo.listMS()
+msinfo.listMS(sys.argv[1])
 
 

@@ -110,6 +110,6 @@ class msinfo:
 		return 0
 	
 listms=msinfo()
-msinfo.listMS(sys.argv[1])
+msinfo.listMS()
 
 

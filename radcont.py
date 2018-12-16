@@ -39,11 +39,25 @@ class radcont:
 		r = pyregion.open(region).as_imagecoord(maskhead)
 		shape = (maskhead['NAXIS2'], maskhead['NAXIS1'])
 		m = r.get_mask(shape=shape)
+		
+		background = np.nanmean(maskdata[m==False])
+		noise = np.nanstd(maskdata[m==False])
+
+
 		maskdata[m==False] = np.nan
 
+
 		maskdata[maskdata<cutoff] = np.nan
+
+		mask = maskdata.copy()
+		mask[~np.isnan(mask)] = 1
+
+		noise = np.multiply(noise,np.sqrt(np.sum(mask)))
 		
-		return maskdata
+		#maskdata -= background
+
+
+		return maskdata, noise, background, np.nansum(mask)
 
 
 	def int_flux(self, cont_im, cutoff, region, pbeam_corr=True):
@@ -103,6 +117,7 @@ class radcont:
 		print str(os.path.basename(cont_im))+':\t total flux density = '+str(total_flux)
 
 		return total_flux, pix_area
+
 
 
 	def mask_cont_forflux(self, maskdata, maskhead, cutoff, region):
@@ -219,7 +234,11 @@ class radcont:
 			del slave.header['PC1_3']
 			del slave.header['PC2_3']
 			del slave.header['PC3_3']
-
+		if 'CROTA3' in base.header:
+			del base.header['CROTA3']
+		if 'CROTA4' in base.header:
+			del base.header['CROTA4']
+		
 		# if 'CD1_1' in slave.header:
 		# 	pix_area = -float(slave.header['CD1_1'])*float(slave.header['CD2_2'])
 		
@@ -242,13 +261,15 @@ class radcont:
 			#base.header['BMIN'] = slave.header['BMIN']
 			fits.writeto(outname, newslave, base.header, clobber=True)
 		if fluxtype == 'healpix':
-			filename_in = get_pkg_data_filename(slavename)
+			print slavename
+			#filename_in = get_pkg_data_filename(slavename)
+			filename_in = slavename
 			newslave, footprint = reproject_from_healpix(filename_in, base.header)
 			fits.writeto(outname, newslave, base.header, clobber=True)
 		elif fluxtype == 'fast':
 			newslave, footprint = reproject_interp(slave, base.header)
-			#base.header['BMAJ'] = slave.header['BMAJ']
-			#base.header['BMIN'] = slave.header['BMIN']
+			base.header['BMAJ'] = slave.header['BMAJ']
+			base.header['BMIN'] = slave.header['BMIN']
 			fits.writeto(outname, newslave, base.header, clobber=True)
 		elif fluxtype == 'montage':
 			headername = 'tmp.hdr'

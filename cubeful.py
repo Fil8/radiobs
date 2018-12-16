@@ -177,12 +177,9 @@ class cubeful:
 			len_yaxis.append(float(baseheader['NAXIS2']))
 			len_xaxis.append(float(baseheader['NAXIS1']))
 			
-			print float(baseheader['NAXIS2'])
-
 		cubeshape_y = np.min(len_yaxis)
 		cubeshape_x = np.min(len_xaxis)
 
-		print cubeshape_x, cubeshape_y
 
 		cube = fits.PrimaryHDU()
 
@@ -192,17 +189,14 @@ class cubeful:
 		bmaj = []
 		cubenames = []
 
-		print cube.data.shape
 		for i in xrange(0,len(cubelist)):
 			base_tmp = fits.open(cubelist[i])[0]
-			print base_tmp.data.shape
 
 			y_diff = base_tmp.data.shape[0] - cube.data.shape[1]
 			x_diff = base_tmp.data.shape[1] - cube.data.shape[2]
 	
 			y_appr =  y_diff/2 + y_diff/2		
 			x_appr =  x_diff/2 + x_diff/2		
-			print y_diff,y_appr,x_diff,x_appr
 			if y_diff == y_appr and x_diff == x_appr:	
 				cube.data[i,:,:] = base_tmp.data[y_diff/2:base_tmp.data.shape[0]-y_diff/2,
 											x_diff/2:base_tmp.data.shape[1]-x_diff/2]
@@ -221,11 +215,21 @@ class cubeful:
 		cube.header['CDELT3'] = 1
 		cube.header['CRVAL3'] = 1
 		cube.header['CRPIX1'] = baseheader['CRPIX2']
-		cube.header['CDELT1'] = baseheader['CDELT2']
+
+		if 'CDELT1' in baseheader:
+			cube.header['CDELT1'] = baseheader['CDELT1']
+		elif 'CD1_1' in baseheader:
+			cube.header['CDELT1'] = baseheader['CD1_1']
+		
 		cube.header['CRVAL1'] = baseheader['CRVAL2']		
 		cube.header['CTYPE1'] = baseheader['CTYPE1']		
 		cube.header['CRPIX2'] = baseheader['CRPIX2']
-		cube.header['CDELT2'] = baseheader['CDELT2']
+		
+		if 'CDELT2' in baseheader:
+			cube.header['CDELT2'] = baseheader['CDELT2']
+		elif 'CD2_2' in baseheader:
+			cube.header['CDELT2'] = baseheader['CD2_2']
+		
 		cube.header['CRVAL2'] = baseheader['CRVAL2']
 		cube.header['CTYPE2'] = baseheader['CTYPE2']		
 		cube.header['CTYPE3'] = 'CHAN'

@@ -2,6 +2,11 @@
 
 import sys, string, os
 import numpy as np
+
+from astropy.time import Time
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+
 import casacore.tables as tables
 import logging 
 

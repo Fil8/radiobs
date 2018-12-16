@@ -16,7 +16,7 @@ class msinfo:
         	logging.basicConfig(level=logging.INFO)
 		self.logger = logging.getLogger(__name__)  
 		
-    	def time_chunk(self,cfg_par):
+    	def time_chunk(self):
 
 		self.logger.info("\t ...  Observing time Info ... \n")
 
@@ -25,13 +25,11 @@ class msinfo:
 		t.close()
 
 		starttime= self.time[0]
-
 		endtime=self.time[-1]
 		time_chunk = float(cfg_par['rfi']['chunks']['time_step'])*60.
 
 		times=np.arange(starttime,endtime+time_chunk*1.,time_chunk)
 
-		cfg_par['rfi']['times'] = times
 		startdate=Time(starttime/3600./24.,format='mjd',scale='utc')
 		cfg_par['rfi']['startdate'] = startdate
 		startdate.format='iso' 
@@ -43,13 +41,12 @@ class msinfo:
 		enddate.format='iso'        
 		enddate.subformat='date_hm'       
 
-
 		self.logger.info('\t Start date: {0:%y}{0:%b}{0:%d}:{0:%X}'.format(startdate.datetime))
 		self.logger.info('\t End date  : {0:%y}{0:%b}{0:%d}:{0:%X} \n\n'.format(enddate.datetime))
         
-return times,startdate,enddate
+		return times,startdate,enddate
   	
-	def load_from_ms(self,cfg_par,times=0):
+	def load_from_ms(self):
 		'''
 		Loads important columns from MS file
 		From MS: 
@@ -103,10 +100,10 @@ return times,startdate,enddate
 		self.logger.info("\tEnd           [GHz]:\t"+str(cfg_par['rfi']['highfreq']/1e9)+'\n')
 
 
-		    #determine start and end date
-		    times_tm, start_tmp, end_tmp = rfiST.time_chunk(cfg_par)
+		#determine start and end date
+		times_tm, start_tmp, end_tmp = self.time_chunk(cfg_par)
 
 
-		    self.logger.info("\t ... info from MS file loaded  \n\n")
+		self.logger.info("\t ... info from MS file loaded  \n\n")
 
-		    return empty_table
+		return 0

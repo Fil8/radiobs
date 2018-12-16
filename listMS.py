@@ -69,6 +69,7 @@ class msinfo:
 		
 		fields=tables.table(self.msfile+'/FIELD')
 		self.fieldNames = fields.getcol('NAME')
+		print self.fieldNames
 		
 		for i in xrange(0,len(self.fieldNames)):
 			self.coords=fields.getcol('REFERENCE_DIR')

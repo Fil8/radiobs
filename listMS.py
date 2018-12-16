@@ -109,7 +109,7 @@ class msinfo:
 
 		return 0
 	
-listms=msinfo()
-msinfo.listMS(sys.argv[1])
+info=msinfo()
+info.listMS(sys.argv[1])
 
 

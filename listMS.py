@@ -65,7 +65,7 @@ class msinfo:
 		fields=tables.table(self.msfile+'/FIELD')
 		self.fieldNames = fields.getcol('NAME')
 		
-		for i inxrange(0,len(self.fieldNames)):
+		for i in xrange(0,len(self.fieldNames)):
 			self.coords=fields.getcol('REFERENCE_DIR')
 			self.coords =self.coords*180./np.pi
 			ra,dec = SkyCoord(self.coords[self.fieldNames,:,0]*u.degree, self.coords[self.fieldNames,:,1]*u.degree,  unit=(u.deg, u.deg))

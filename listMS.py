@@ -73,7 +73,7 @@ class msinfo:
 		for i in xrange(0,len(self.fieldNames)):
 			self.coords=fields.getcol('REFERENCE_DIR')
 			self.coords =self.coords*180./np.pi
-			ra,dec = SkyCoord(self.coords[self.fieldNames,:,0]*u.degree, self.coords[self.fieldNames,:,1]*u.degree,  unit=(u.deg, u.deg))
+			ra,dec = SkyCoord(self.coords[self.fieldNames[i],:,0]*u.degree, self.coords[self.fieldNames[i],:,1]*u.degree,  unit=(u.deg, u.deg))
 
 			self.logger.info("\tField with name {0:s} (Field ID = {1:d}): ".format(self.FieldName[i],i,ra,dec))
 		    #self.logger.info("\tCoordinates {}".format(selectFieldName,self.selectFieldID))

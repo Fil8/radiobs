@@ -1,4 +1,5 @@
-# Import modules
+#!/usr/bin/env python
+
 import sys, string, os
 import numpy as np
 import casacore.tables as tables
@@ -46,7 +47,7 @@ class msinfo:
         
 		return times,startdate,enddate
   	
-	def load_from_ms(self):
+	def listMS(self):
 		'''
 		Loads important columns from MS file
 		From MS: 
@@ -107,3 +108,8 @@ class msinfo:
 		self.logger.info("\t ... info from MS file loaded  \n\n")
 
 		return 0
+	
+listms=msinfo()
+msinfo.listMS(sys.argv[1])
+
+

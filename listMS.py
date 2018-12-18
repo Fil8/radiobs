@@ -22,7 +22,7 @@ class msinfo:
         	logging.basicConfig(level=logging.INFO)
 		self.logger = logging.getLogger(__name__)  
 		
-    	def time_chunk(nameFile):
+    	def time_chunk(self,nameFile):
 
 		self.logger.info("\t ...  Observing time Info ... \n")
 
@@ -32,17 +32,13 @@ class msinfo:
 
 		starttime= self.time[0]
 		endtime=self.time[-1]
-		time_chunk = float(cfg_par['rfi']['chunks']['time_step'])*60.
-
-		times=np.arange(starttime,endtime+time_chunk*1.,time_chunk)
 
 		startdate=Time(starttime/3600./24.,format='mjd',scale='utc')
-		cfg_par['rfi']['startdate'] = startdate
 		startdate.format='iso' 
 		startdate.subformat='date_hm'       
 
 		enddate=Time(endtime/3600./24.,format='mjd',scale='utc')
-		cfg_par['rfi']['enddate'] = enddate
+
 
 		enddate.format='iso'        
 		enddate.subformat='date_hm'       
@@ -50,7 +46,7 @@ class msinfo:
 		self.logger.info('\t Start date: {0:%y}{0:%b}{0:%d}:{0:%X}'.format(startdate.datetime))
 		self.logger.info('\t End date  : {0:%y}{0:%b}{0:%d}:{0:%X} \n\n'.format(enddate.datetime))
         
-		return times,startdate,enddate
+		return startdate,enddate
   	
 	def listMS(self,nameFile):
 		'''
@@ -63,20 +59,20 @@ class msinfo:
 		Chan_width, Chan_freq
 		'''
 
-		self.logger.info("\t ... Fields, Antennas & Bandwidth Info ...\n")
+		self.logger.info("\n\t\t ... Fields, Antennas & Bandwidth Info ...\n")
 
 		self.msfile = nameFile
 		
 		fields=tables.table(self.msfile+'/FIELD')
 		self.fieldNames = fields.getcol('NAME')
-		print self.fieldNames
-		
-		for i in xrange(0,len(self.fieldNames)):
-			self.coords=fields.getcol('REFERENCE_DIR')
-			self.coords =self.coords*180./np.pi
-			ra,dec = SkyCoord(self.coords[self.fieldNames[i],:,0]*u.degree, self.coords[self.fieldNames[i],:,1]*u.degree,  unit=(u.deg, u.deg))
+		self.coords = fields.getcol('REFERENCE_DIR')
+		self.coords = self.coords*180./np.pi
 
-			self.logger.info("\tField with name {0:s} (Field ID = {1:d}): ".format(self.FieldName[i],i,ra,dec))
+		for i in xrange(0,len(self.fieldNames)):
+                    tmpFieldName= self.fieldNames[i]	
+                    coords = SkyCoord(self.coords[i,:,0]*u.degree, self.coords[i,:,1]*u.degree,unit=(u.deg, u.deg))
+
+                    self.logger.info("\tField with name {0:s} (Field ID = {1:d}): {2:s}\n".format(tmpFieldName,i,coords.to_string('hmsdms')))
 		    #self.logger.info("\tCoordinates {}".format(selectFieldName,self.selectFieldID))
 
 		antennas = tables.table(self.msfile +'/ANTENNA')
@@ -96,19 +92,20 @@ class msinfo:
 		self.channelWidths=spw.getcol('CHAN_WIDTH')
 
 		self.channelFreqs=spw.getcol('CHAN_FREQ')
-		self.chan_widths = self.channelWidths[0][0]
+		
+                self.chan_widths = self.channelWidths[0][0]
 		self.lowfreq = float(self.channelFreqs[0][0])
 		self.highfreq = float(self.channelFreqs[-1][-1])
 		spw.close()
 
-		self.logger.info('\t\t Total number of channels = '+ str(self.chan_Widths.shape[1]))
+		self.logger.info('\tTotal number of channels = '+ str(self.channelWidths.shape[1]))
 		self.logger.info("\tChannel Width [kHz]:\t"+str(self.chan_widths/1e3))
 		self.logger.info("\tStart         [GHz]:\t"+str(self.lowfreq/1e9))
 		self.logger.info("\tEnd           [GHz]:\t"+str(self.highfreq/1e9)+'\n')
 
 
 		#determine start and end date
-		times_tm, start_tmp, end_tmp = self.time_chunk(cfg_par)
+		start_tmp, end_tmp = self.time_chunk(nameFile)
 
 
 		self.logger.info("\t ... info from MS file loaded  \n\n")

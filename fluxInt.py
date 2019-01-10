@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+__author__ = "Filippo Maccagni"
+__copyright__ = "Fil8"
+__email__ = "filippo.maccagni@gmail.com"
+
 import sys, os, string
 import numpy as np
 from astropy.io import fits, ascii
@@ -10,14 +14,13 @@ from prettytable import PrettyTable
 import montage_wrapper as montage
 
 
-class fluxint:
+class flInt:
     
 
     def __init__(self):
 
         self.rootdir = os.getcwd()+'/'
         #self.filename = sys.argv[1]
-        self.out_table = self. rootdir+'integrated_flux.tbl'
 
     def openFile(self,filename):
         
@@ -34,11 +37,14 @@ class fluxint:
     
     def readFreq(self,heads,arg):
         
-        if 'CRVAL3' in heads:
-            freq = heads['CRVAL3']
-        elif '-fr' in arg:
+        if '-fr' in arg:
             freq = float(arg[arg.index('-fr')+1])*1e6
+        elif 'CRVAL3' in heads:
+            freq =  float(heads['CRVAL3'])
+        elif 'FREQ' in heads:
+            freq = float(heads['FREQ'])
 
+        
         return freq
 
     def maskData(self,slavename,basename):
@@ -63,25 +69,29 @@ class fluxint:
 
         print '\t ... reproject image to mask ...'
         if not (slave.header['NAXIS1'] == slave.header['NAXIS1'] and base.header['NAXIS2'] == slave.header['NAXIS2']):
-        
+            base.header['BMAJ'] =  slave.header['BMAJ']       
+            base.header['BMIN'] =  slave.header['BMIN']
+            if slave.header['FREQ']: 
+                base.header['FREQ'] =  slave.header['FREQ']    
+            elif slave.header['CRVAL3']: 
+                base.header['FREQ'] =  slave.header['CRVAL3']    
+
+            fits.writeto(basename,base.data,base.header,overwrite=True)
             montage.mGetHdr(basename,headername)
             montage.mProject(slavename,outname,headername)
             os.remove(headername)
             slave_regr = fits.open(outname)[0]
         else:
             slave_regr = fits.open(slavename)[0]
-
-        print '\t ... mask image ...'
         
         index = base.data > 0
 
         #mean stats
         background = np.nanmean(slave_regr.data[index==False])
-        noise = np.nanstd(slave_regr.data[index==False])
+        self.noise = np.nanstd(slave_regr.data[index==False])
         
         pixels = np.count_nonzero(base.data[index==True])
-        
-        noise = np.multiply(noise,np.sqrt(pixels))
+        noise = np.multiply(self.noise,np.sqrt(pixels))
         
         datas = slave_regr.data[index==True]
         
@@ -111,22 +121,27 @@ class fluxint:
         #mean stats
         background = np.nanmean(datas[m==False])
         noise = np.nanstd(datas[m==False])
-        
+        if cutoff == 0.0:
+            self.cutoff = noise*3.
+        else:
+            self.cutoff = cutoff
+            noise=cutoff    
+
+        print self.cutoff
+
         mm = datas.copy()
         mm[:,:] = 1.
-        pixels = np.count_nonzero(mm[m==True])
+        self.pixels = np.count_nonzero(mm[m==True])
         
         datas[m==False] = np.nan
-        index_cut = datas < cutoff
+        index_cut = datas < self.cutoff
         
         datas[index_cut] = np.nan
         
 
-        noise = np.multiply(noise,np.sqrt(pixels))
+        noise = np.multiply(noise,np.sqrt(self.pixels))
         
-        return datas, background, noise, pixels
-
-
+        return datas, background, noise, self.pixels
 
     def cleanHead(self,heads):
 
@@ -154,36 +169,34 @@ class fluxint:
                 del heads['CROTA4']  
         
         heads['NAXIS'] = 2
-
         return heads
 
-    def measFlux(self,datas,heads):
+    def measFlux(self,datas,heads,noise,errFlux):
 
-        print '\t ... measure flux ...'
+        fluxSum=np.nansum(datas)
 
-        fluxsum=np.nansum(datas)
+        beamArea = 2*np.pi*heads['BMAJ']*3600./2.35482*heads['BMIN']*3600./2.35482
+        pixArea = -float(heads['CDELT2']*3600.)*float(heads['CDELT1']*3600.)
 
-        beam_area = 2*np.pi*heads['BMAJ']*3600./2.35482*heads['BMIN']*3600./2.35482
-        pix_area = -float(heads['CDELT2']*3600.)*float(heads['CDELT1']*3600.)
+        numPixBeam= beamArea/pixArea
 
-        number_pix_beam= beam_area/pix_area
+        fluxInt = np.divide(fluxSum,numPixBeam)
 
-        fluxint = np.divide(fluxsum,number_pix_beam)
+        return fluxInt,numPixBeam
 
-        return fluxint,number_pix_beam
-
-    def writeTable(self,heads,fluxint,noise_pix_beam,freq):
+    def writeTable(self,heads,fluxInt,noise,numPixBeam,freq,errFlux):
         
-        print '\t ... write table ...'
+        noiseInt = np.divide(noise,numPixBeam)
+        fluxErr = np.sqrt(np.power(fluxInt/100.*errFlux,2)+np.power(noiseInt,2))          
 
-        noiseint = np.divide(noise,number_pix_beam)
-        
-        alldata = np.array([freq*1e-6,np.round(fluxint,8),np.round(noiseint,8),np.round(heads['BMAJ']*3600.,3),
-            np.round(heads['BMIN']*3600.,3),np.round(heads['CDELT2']*3600.,0),np.round(number_pix_beam,3),np.round(pixels,0)])
+        alldata = np.array([freq*1e-6,np.round(fluxInt,8),np.round(noiseInt,8),np.round(fluxErr,6),np.round(heads['BMAJ']*3600.,3),
+            np.round(heads['BMIN']*3600.,3),np.round(heads['CDELT2']*3600.,0),np.round(numPixBeam,3),np.round(self.cutoff*1e3,4),np.round(self.pixels,0)])
 
-        columnames = ['Frequency [MHz]','Integrated Flux [Jy]','Noise [Jy]','BeamMaj [arcsec]','BeamMin [arcsec]',
-                'PixSize [arcsec]','Beam/pix','PixInt']
-        
+        columnames = ['Frequency [MHz]','Integrated Flux [Jy]','Noise [Jy]', 'Error [Jy]', 'BeamMaj [arcsec]','BeamMin [arcsec]',
+                'PixSize [arcsec]','Beam/pix','Flux cutoff [mJy/beam]','PixInt']
+       
+        self.out_table = self.rootdir+'integratedFluxes.tbl'
+
         if os.path.exists(self.out_table):
             tt = Table.read(self.out_table, format='ascii')
             tt.add_row(alldata)
@@ -193,84 +206,16 @@ class fluxint:
         ascii.write(tt,self.out_table, overwrite=True)
 
         #print table
-        alldata = np.array([freq*1e-6,np.round(fluxint,3),np.round(noiseint,5),np.round(heads['BMAJ']*3600.,3),
-            np.round(heads['BMIN']*3600.,3),np.round(heads['CDELT2']*3600.,0),np.round(number_pix_beam,3),np.round(pixels,0)])
+        alldata = np.array([freq*1e-6,np.round(fluxInt,5),np.round(noiseInt,6),np.round(fluxErr,6),np.round(heads['BMAJ']*3600.,3),
+            np.round(heads['BMIN']*3600.,3),np.round(heads['CDELT2']*3600.,0),np.round(numPixBeam,3),np.round(self.cutoff*1e3,4),np.round(self.pixels,0)])
 
         t = PrettyTable(columnames)
         t.add_row(alldata)
-        print t
         
-        return 0
+        return t, fluxErr
 
 
 
 
-#-------------------------------#
-#             MAIN              #
-#-------------------------------#
-fint=fluxint()
-
-# Print help message and exit
-if 'help' in sys.argv or '-h' in sys.argv:
-    print 'Run as follows'
-    print 'fluxint.py -f <filename.fits> OR -t <filename.tbl> AND -m <maskname.fits> OR -r <region.fits> OPTIONS (-c <cutoff> -fr <observed_frequency in MHz>)'
-    sys.exit()
-else: arg=sys.argv
-
-if '-f' in arg:
-    fileName=arg[arg.index('-f')+1]
-elif '-t' in arg: 
-    tableName=arg[arg.index('-t')+1]
-    tableFileNames= ascii.read(tableName,format='csv')
-
-if '-m' in arg:
-    maskName=arg[arg.index('-m')+1]
-    maskData,maskHead = fint.openFile(maskName)
-    maskData = np.squeeze(maskData)
-    maskHead = fint.cleanHead(maskHead)
-    fits.writeto(maskName,maskData,maskHead,overwrite=True)
-elif '-r' in arg:
-    region =arg[arg.index('-r')+1]
-    print region
-
-if '-c' in arg:
-    cutoff =float(arg[arg.index('-c')+1])
-else:
-    cutoff = 1e-3
 
 
-if ('-f' in arg and '-r' in arg):
-    print 'ciao'
-    print '\t Executing File+Region Combo' 
-    datas,heads = fint.openFile(fileName)
-    datas=np.squeeze(datas)
-    heads = heads=fint.cleanHead(heads)
-    maskedData, background, noise, pixels=fint.maskDatReg(datas,heads,region,cutoff)
-
-    freq=fint.readFreq(heads,arg)
-    fluxint, number_pix_beam=fint.measFlux(maskedData,heads)
-    fint.writeTable(heads,fluxint,number_pix_beam,freq)
-
-if ('-f' in arg and '-m' in arg):
-    print '\t Executing File+Mask Combo' 
-    maskedData, background, noise, pixels, newHeads = fint.maskData(fileName,maskName)
-    heads=newHeads
-
-    freq=fint.readFreq(heads,arg)
-    fluxint, number_pix_beam=fint.measFlux(maskedData,heads)
-    fint.writeTable(heads,fluxint,number_pix_beam,freq)
-
-if ('-t' in arg and '-m' in arg):
-    print '\t Executing FileList+Mask Combo'
-    for i in xrange(0,len(tableFileNames.columns[0])):
-
-        fileName = tableFileNames.columns[0][i]
-        maskedData, background, noise, pixels, newHeads = fint.maskData(fileName,maskName)
-        heads=newHeads
-        
-        if 'Frequency' in tableFileNames.dtype.names:
-            freq = tableFileNames.columns[1][i]*1e6
-
-        fluxint, number_pix_beam=fint.measFlux(maskedData,heads)
-
-        fint.writeTable(heads,fluxint,number_pix_beam,freq)

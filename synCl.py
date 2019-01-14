@@ -27,6 +27,8 @@ class synClean:
 
 			f.close()
 
+			return synTable
+
 	def readCIStats(self,CI_table):
 			
 			table = ascii.read(CI_table)

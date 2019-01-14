@@ -109,7 +109,7 @@ class flInt:
         OUTPUT:
             masked_data
             background
-            noise
+            rms
             masked_number_of_pixels
         '''
 
@@ -121,27 +121,84 @@ class flInt:
         #mean stats
         background = np.nanmean(datas[m==False])
         noise = np.nanstd(datas[m==False])
+        
         if cutoff == 0.0:
-            self.cutoff = noise*3.
+            self.cutoff = np.nan
+        elif cutoff < 0:
+            self.cutoff = noise
         else:
             self.cutoff = cutoff
             noise=cutoff    
-
         print self.cutoff
-
-        mm = datas.copy()
-        mm[:,:] = 1.
-        self.pixels = np.count_nonzero(mm[m==True])
         
+
         datas[m==False] = np.nan
         index_cut = datas < self.cutoff
         
         datas[index_cut] = np.nan
         
-
-        noise = np.multiply(noise,np.sqrt(self.pixels))
+        mm = datas.copy()
+        mm[:,:] = 1.
+        self.pixels = np.count_nonzero(mm[m==True])
+        
+        #noise = np.multiply(noise,np.sqrt(self.pixels))
         
         return datas, background, noise, self.pixels
+
+    def noiseReg(self,datas,heads,region):
+        '''
+        mask datas within ds9 region estimate noise and background outside of it
+        INPUT:
+            datas: array of data
+            heads: header of file
+            region: ds9 region
+        OUTPUT:
+            background
+            rms
+            number_of_pixels_in_region
+        '''
+
+        # set polygonal mask from ds9 region
+        r = pyregion.open(region).as_imagecoord(heads)
+        shape = (heads['NAXIS2'], heads['NAXIS1'])
+        m = r.get_mask(shape=shape)
+
+        #mean stats
+        background = np.nanmean(datas[m==False])
+        noise = np.nanstd(datas[m==False]) 
+
+        mm = datas.copy()
+        mm[:,:] = 1.
+        pixels = np.count_nonzero(mm[m==True])
+        
+        return background, noise, pixels
+
+    def noiseMultiReg(self,ldata,lhead,region_dir):
+        
+        r = [f for f in os.listdir(region_dir) if os.path.isfile(os.path.join(region_dir, f))]
+
+        mean_values = np.zeros(len(r))
+        flux_values = np.zeros(len(r))
+        pixels = 0.
+        for i in xrange(0,len(r)):
+            region_name = region_dir+r[i]
+            #print region_name
+            re = pyregion.open(region_name).as_imagecoord(lhead)
+            shape = (lhead['NAXIS2'], lhead['NAXIS1'])
+            m_noise = re.get_mask(shape=shape)
+            mask_tmp = np.copy(ldata)
+            #print np.nansum(mask_tmp[m_noise==True])
+
+            #mask_tmp[m==True] = np.nan
+            flux_values[i] = np.nansum(mask_tmp[m_noise==True])
+            mean_values[i] = np.nanmean(mask_tmp[m_noise==True])
+            pixels += np.count_nonzero(mask_tmp[m_noise==True])
+        
+        noise = np.nanstd(flux_values)
+        back = np.nanmean(flux_values)
+        pixels = pixels/len(r)
+
+        return back,noise, pixels
 
     def cleanHead(self,heads):
 
@@ -171,11 +228,12 @@ class flInt:
         heads['NAXIS'] = 2
         return heads
 
-    def measFlux(self,datas,heads,noise,errFlux):
+    def measFlux(self,datas,heads,errFlux):
 
         fluxSum=np.nansum(datas)
+        
+        beamArea = 2*np.pi*float(heads['BMAJ'])*3600./2.35482*float(heads['BMIN'])*3600./2.35482
 
-        beamArea = 2*np.pi*heads['BMAJ']*3600./2.35482*heads['BMIN']*3600./2.35482
         pixArea = -float(heads['CDELT2']*3600.)*float(heads['CDELT1']*3600.)
 
         numPixBeam= beamArea/pixArea
@@ -184,18 +242,18 @@ class flInt:
 
         return fluxInt,numPixBeam
 
-    def writeTable(self,heads,fluxInt,noise,numPixBeam,freq,errFlux):
+    def writeTable(self,heads,fluxInt,noise,numPixBeam,freq,errFlux,outTable='integratedFluxes.tbl'):
         
-        noiseInt = np.divide(noise,numPixBeam)
+        #noiseInt = np.divide(noise,numPixBeam)
+        noiseInt = float(noise)
         fluxErr = np.sqrt(np.power(fluxInt/100.*errFlux,2)+np.power(noiseInt,2))          
-
-        alldata = np.array([freq*1e-6,np.round(fluxInt,8),np.round(noiseInt,8),np.round(fluxErr,6),np.round(heads['BMAJ']*3600.,3),
-            np.round(heads['BMIN']*3600.,3),np.round(heads['CDELT2']*3600.,0),np.round(numPixBeam,3),np.round(self.cutoff*1e3,4),np.round(self.pixels,0)])
+        alldata = np.array([freq*1e-6,np.round(fluxInt,8),np.round(noiseInt,8),np.round(fluxErr,6),np.round(float(heads['BMAJ'])*3600.,3),
+            np.round(float(heads['BMIN'])*3600.,3),np.round(float(heads['CDELT2'])*3600.,0),np.round(numPixBeam,3),np.round(self.cutoff*1e3,4),np.round(self.pixels,0)])
 
         columnames = ['Frequency [MHz]','Integrated Flux [Jy]','Noise [Jy]', 'Error [Jy]', 'BeamMaj [arcsec]','BeamMin [arcsec]',
                 'PixSize [arcsec]','Beam/pix','Flux cutoff [mJy/beam]','PixInt']
        
-        self.out_table = self.rootdir+'integratedFluxes.tbl'
+        self.out_table = self.rootdir+outTable
 
         if os.path.exists(self.out_table):
             tt = Table.read(self.out_table, format='ascii')
@@ -206,8 +264,8 @@ class flInt:
         ascii.write(tt,self.out_table, overwrite=True)
 
         #print table
-        alldata = np.array([freq*1e-6,np.round(fluxInt,5),np.round(noiseInt,6),np.round(fluxErr,6),np.round(heads['BMAJ']*3600.,3),
-            np.round(heads['BMIN']*3600.,3),np.round(heads['CDELT2']*3600.,0),np.round(numPixBeam,3),np.round(self.cutoff*1e3,4),np.round(self.pixels,0)])
+        alldata = np.array([freq*1e-6,np.round(fluxInt,5),np.round(noiseInt,6),np.round(fluxErr,6),np.round(float(heads['BMAJ'])*3600.,3),
+            np.round(float(heads['BMIN'])*3600.,3),np.round(float(heads['CDELT2'])*3600.,0),np.round(numPixBeam,3),np.round(self.cutoff*1e3,4),np.round(self.pixels,0)])
 
         t = PrettyTable(columnames)
         t.add_row(alldata)

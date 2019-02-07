@@ -122,15 +122,13 @@ class flInt:
         background = np.nanmean(datas[m==False])
         noise = np.nanstd(datas[m==False])
         
-        if cutoff == 0.0:
-            self.cutoff = np.nan
-        elif cutoff < 0:
-            self.cutoff = noise
-        else:
-            self.cutoff = cutoff
-            noise=cutoff    
-        print self.cutoff
-        
+        #if cutoff == 0.0:
+        self.cutoff = np.nan
+        #elif cutoff < 0:
+        #    self.cutoff = noise
+        #else:
+        #    self.cutoff = cutoff
+        #    noise=cutoff            
 
         datas[m==False] = np.nan
         index_cut = datas < self.cutoff
@@ -200,43 +198,102 @@ class flInt:
 
         return back,noise, pixels
 
-    def cleanHead(self,heads):
-
-
-        if float(heads['NAXIS']) >2:
-
-            if 'NAXIS3' in heads:
-                del heads['NAXIS3']
-                del heads['CRVAL3']
-                del heads['CDELT3']
-                del heads['CRPIX3']
-                del heads['CTYPE3']  
-                if 'CROTA3' in heads:
-                    del heads['CROTA3']
-            
-        if float(heads['NAXIS']) > 3:
-            
-            if 'NAXIS4' in heads:
-                del heads['NAXIS4']     
-                del heads['CRVAL4']
-                del heads['CDELT4']
-                del heads['CRPIX4']
-                del heads['CTYPE4'] 
-            if 'CROTA4' in heads:
-                del heads['CROTA4']  
+    def cleanHead(self,fileName):
         
+        base = fits.open(fileName)[0]
+
+        heads = base.header
+        datas = base.data
+
+        if 'NAXIS3' in heads:
+            del heads['NAXIS3']
+        if 'CRVAL3' in heads:
+            del heads['CRVAL3']
+        if 'CDELT3' in heads:
+            del heads['CDELT3']
+        if 'CRPIX3' in heads: 
+            del heads['CRPIX3']
+        if 'CTYPE3' in heads:        
+            del heads['CTYPE3']  
+        if 'CROTA3' in heads:
+            del heads['CROTA3']
+        if 'CUNIT3' in heads:
+            del heads['CUNIT3']        
+            
+        if 'NAXIS4' in heads:
+            del heads['NAXIS4']     
+        if 'CRVAL4' in heads:        
+            del heads['CRVAL4']
+        if 'CDELT4' in heads:    
+            del heads['CDELT4']
+        if 'CRPIX4' in heads:    
+            del heads['CRPIX4']
+        if 'CTYPE4' in heads:    
+            del heads['CTYPE4'] 
+        if 'CROTA4' in heads:
+            del heads['CROTA4']  
+        if 'CUNIT4' in heads:
+            del heads['CUNIT4']
+        
+        if 'WCSAXES' in heads:
+            heads['WCSAXES'] = 2
+        
+        if 'PC1_1' in heads:   
+            del heads['PC1_1']            
+        if 'PC2_1' in heads:   
+            del heads['PC2_1']           
+        if 'PC3_1' in heads:   
+            del heads['PC3_1']
+        if 'PC4_1' in heads:   
+            del heads['PC4_1']    
+        if 'PC1_2' in heads:
+            del heads['PC1_2']
+        if 'PC2_2' in heads:
+            del heads['PC2_2']
+        if 'PC3_2' in heads:
+            del heads['PC3_2']
+        if 'PC4_2' in heads:
+            del heads['PC4_2']
+        if 'PC1_3' in heads:
+            del heads['PC1_3']
+        if 'PC2_3' in heads:
+            del heads['PC2_3']
+        if 'PC3_3' in heads:    
+            del heads['PC3_3']
+        if 'PC4_3' in heads:    
+            del heads['PC4_3']
+        if 'PC1_4' in heads:
+            del heads['PC1_4']            
+        if 'PC2_4' in heads:
+            del heads['PC2_4']
+        if 'PC3_4' in heads:
+            del heads['PC3_4']
+        if 'PC4_4' in heads:
+            del heads['PC4_4']
+        if 'PV2_2' in heads:
+            del heads['PV2_1']
+        if 'PV2_2' in heads:
+            del heads['PV2_2']
+
+
         heads['NAXIS'] = 2
-        return heads
+
+        datas = np.squeeze(datas)
+
+        fits.writeto(fileName,datas,heads,overwrite=True)
+
+        return fileName
 
     def measFlux(self,datas,heads,errFlux):
 
         fluxSum=np.nansum(datas)
-        
+        #print fluxSum
         beamArea = 2*np.pi*float(heads['BMAJ'])*3600./2.35482*float(heads['BMIN'])*3600./2.35482
 
         pixArea = -float(heads['CDELT2']*3600.)*float(heads['CDELT1']*3600.)
 
         numPixBeam= beamArea/pixArea
+
 
         fluxInt = np.divide(fluxSum,numPixBeam)
 
@@ -271,6 +328,10 @@ class flInt:
         t.add_row(alldata)
         
         return t, fluxErr
+
+
+
+
 
 
 

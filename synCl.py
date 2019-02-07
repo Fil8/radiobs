@@ -13,6 +13,7 @@ class synClean:
 	def writeSynageTable(self,freq,fluxIntegrated,fluxErr,title):
 
 			synTable = self.rootdir+'synageFl'+title+'.tbl'
+			print synTable
 			title1='point 1\nlabel: '+title
 
 			f = open(synTable, 'w')
@@ -26,6 +27,7 @@ class synClean:
 					f.write(line)
 
 			f.close()
+			
 
 			return synTable
 

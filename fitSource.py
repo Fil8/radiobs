@@ -54,5 +54,4 @@ class fitSrc:
         
         data = np.squeeze(data)
         pars = self.fitgaussian(data)
-
         return pars

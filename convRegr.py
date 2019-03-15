@@ -26,9 +26,9 @@ class cvRegr:
             
         outName = string.split(basename,'.fits')[0]
         outName = outName+'_cv.fits'            
-        basename = fint.cleanHead(basename)
+        dat, baseheader = fint.openFile(basename)
         basefile = fits.open(basename)
-        baseheader = basefile[0].header
+        #baseheader = basefile[0].header
         basedata=Image(basename)
         
         if 'NAXIS3' in baseheader:
@@ -90,17 +90,16 @@ class cvRegr:
         outName = outName+'_rg.fits'            
 
 
-        basename = fint.cleanHead(basename)
-        slavename = fint.cleanHead(slavename)
+        bdata, bheader = fint.openFile(basename)
+        sdata, sheader = fint.openFile(slavename)
         slave = fits.open(slavename)[0]
-        base = fits.open(basename)[0]
         
-        base.header['BMIN'] = slave.header['BMIN']
-        base.header['BMAJ'] = slave.header['BMAJ']
+        bheader['BMIN'] = sheader['BMIN']
+        bheader['BMAJ'] = sheader['BMAJ']
         if 'FREQ' in slave.header:
-            base.header['FREQ'] = slave.header['FREQ']
-        elif 'CRVAL3' in slave.header:
-            base.header['FREQ'] = slave.header['CRVAL3']
+            bheader['FREQ'] = sheader['FREQ']
+        elif 'CRVAL3' in sheader:
+            bheader['FREQ'] = sheader['CRVAL3']
 
         #print basename
         #for i in base.header.keys():
@@ -109,7 +108,7 @@ class cvRegr:
         #for i in slave.header.keys():
         #    print i,'\t',slave.header[i]
         
-        newslave, footprint = reproject_exact(slave, base.header)
-        fits.writeto(outName, newslave, base.header, clobber=True)
+        newslave, footprint = reproject_exact(slave, bheader)
+        fits.writeto(outName, newslave, bheader, clobber=True)
 
         return outName

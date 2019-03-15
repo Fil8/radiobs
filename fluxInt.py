@@ -33,6 +33,8 @@ class flInt:
         
         heads = files[0].header    
 
+        heads = self.cleanHead(heads)
+
         return datas, heads
     
     def readFreq(self,heads,arg):
@@ -198,13 +200,11 @@ class flInt:
 
         return back,noise, pixels
 
-    def cleanHead(self,fileName):
-        
-        base = fits.open(fileName)[0]
+    def cleanHead(self,heads):
+        #base = fits.open(fileName)
 
-        heads = base.header
-        datas = base.data
-
+        #heads = base[0].header
+        #datas = base[0].data
         if 'NAXIS3' in heads:
             del heads['NAXIS3']
         if 'CRVAL3' in heads:
@@ -275,19 +275,22 @@ class flInt:
         if 'PV2_2' in heads:
             del heads['PV2_2']
 
-
         heads['NAXIS'] = 2
 
-        datas = np.squeeze(datas)
+        #fits.writeto(fileName,datas,heads,overwrite=True)
 
-        fits.writeto(fileName,datas,heads,overwrite=True)
+        return heads
 
-        return fileName
-
-    def measFlux(self,datas,heads,errFlux):
+    def measFlux(self,datas,heads,errFlux,option):
 
         fluxSum=np.nansum(datas)
-        #print fluxSum
+        print option
+        if option=='core':
+
+            heads['BMAJ'] = 15.5994052886964/3600.
+            heads['BMIN'] = 9.063186946332443/3600.
+        print heads['BMAJ']
+
         beamArea = 2*np.pi*float(heads['BMAJ'])*3600./2.35482*float(heads['BMIN'])*3600./2.35482
 
         pixArea = -float(heads['CDELT2']*3600.)*float(heads['CDELT1']*3600.)

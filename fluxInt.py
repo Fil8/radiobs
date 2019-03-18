@@ -284,13 +284,11 @@ class flInt:
     def measFlux(self,datas,heads,errFlux,option):
 
         fluxSum=np.nansum(datas)
-        print option
-        if option=='core':
+        if option=='RgCv':
+            heads['BMAJ'] = 18.5/3600.
+            heads['BMIN'] = 9./3600.
 
-            heads['BMAJ'] = 15.5994052886964/3600.
-            heads['BMIN'] = 9.063186946332443/3600.
         print heads['BMAJ']
-
         beamArea = 2*np.pi*float(heads['BMAJ'])*3600./2.35482*float(heads['BMIN'])*3600./2.35482
 
         pixArea = -float(heads['CDELT2']*3600.)*float(heads['CDELT1']*3600.)
@@ -313,15 +311,15 @@ class flInt:
         columnames = ['Frequency [MHz]','Integrated Flux [Jy]','Noise [Jy]', 'Error [Jy]', 'BeamMaj [arcsec]','BeamMin [arcsec]',
                 'PixSize [arcsec]','Beam/pix','Flux cutoff [mJy/beam]','PixInt']
        
-        self.out_table = self.rootdir+outTable
+        #self.out_table = self.rootdir+outTable
 
-        if os.path.exists(self.out_table):
-            tt = Table.read(self.out_table, format='ascii')
+        if os.path.exists(outTable):
+            tt = Table.read(outTable, format='ascii')
             tt.add_row(alldata)
         else: 
             tt = Table(alldata,names=columnames,meta={'name': 'Total flux table'})
             
-        ascii.write(tt,self.out_table, overwrite=True)
+        ascii.write(tt,outTable, overwrite=True)
 
         #print table
         alldata = np.array([freq*1e-6,np.round(fluxInt,5),np.round(noiseInt,6),np.round(fluxErr,6),np.round(float(heads['BMAJ'])*3600.,3),

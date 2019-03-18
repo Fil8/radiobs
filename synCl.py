@@ -10,9 +10,7 @@ class synClean:
 			self.rootdir = os.getcwd()+'/'
 
 
-	def writeSynageTable(self,freq,fluxIntegrated,fluxErr,title):
-
-			synTable = self.rootdir+'synageFl'+title+'.tbl'
+	def writeSynageTable(self,synTable,freq,fluxIntegrated,fluxErr,title):
 
 			title1='point 1\nlabel: '+title
 

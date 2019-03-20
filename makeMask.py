@@ -54,7 +54,6 @@ class makeMask:
 		hh = self.cleanHead(hh)
 		dd = np.squeeze(dd)
 
-		print options
 		if vals:
 			xmin=int(vals[0])
 			xmax=int(vals[1])

@@ -11,7 +11,7 @@ from astropy.table import Table
 import pyregion
 from prettytable import PrettyTable
 
-import montage_wrapper as montage
+#import montage_wrapper as montage
 
 
 class flInt:

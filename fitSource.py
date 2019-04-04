@@ -76,8 +76,6 @@ class fitSrc:
         max = data.max()
 
         fit = lambda t : max*np.exp(-(t-x)**2/(2*width**2))
-        print max
-        print np.max(fit(X))
         return max,x,width
 
     def gaus2Dfit(self,data):

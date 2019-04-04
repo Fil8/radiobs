@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import logging
+
+import ants
+
+
+ants.main([a for a in sys.argv[1:]])
+
+print ('\t************ --- radiobs : DONE --- *************\n')
+

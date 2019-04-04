@@ -17,6 +17,8 @@ sys.path.append(os.path.join(RADIOBS_PATH, 'ants'))
 
 import pbCorr
 import headPlay
+import fluxInt
+
 
 import pkg_resources
 try:
@@ -64,7 +66,11 @@ def main (argv):
         action='store_true',
         help= 'tool to play with header of fits file')
 
-    args = parser.parse_args(argv)
+    add('-fl', '--fluxInt',
+        action='store_true',
+        help= 'tool to measure fluxes')
+
+    args, unknown = parser.parse_known_args()
 
     if args.help and len(argv) ==1 :
         print '\n\t************* --- radiobs : Help --- **************\n'
@@ -75,6 +81,8 @@ def main (argv):
         print ("""\nRun a command. This can be:\n
 radiobs\t\t(all tools)
 radiobs -pb\t correction for the primary beam
+radiobs -hp\t tools to read and modify header of fits file
+radiobs -fl\t tools to measure flux of sources in fits image
             """)
         print '\n\t************* --- radiobs : DONE --- **************\n'
 
@@ -91,6 +99,13 @@ radiobs -pb\t correction for the primary beam
         print ('\n\t************* --- radiobs : headPlay --- **************\n')
         hp = headPlay.headplay()
         hp.main(argv)
+
+
+    elif args.fluxInt:
+        
+        print ('\n\t************* --- radiobs : fluxInt --- **************\n')
+        fl = fluxInt.fluxint()
+        fl.main(argv)
 
     else:
         print ('\n\t ... you have not entered an available class function ... \n')

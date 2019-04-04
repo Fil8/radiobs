@@ -1,3 +1,5 @@
 ipython==5.8.0
 numpy
 scipy
+pyregion==1.2.0
+prettyTable

@@ -6,6 +6,8 @@ import logging
 
 import ants
 
+print ('\t************ --- radiobs  --- *************')
+
 
 ants.main([a for a in sys.argv[1:]])
 

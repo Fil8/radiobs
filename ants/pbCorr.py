@@ -83,10 +83,6 @@ class pbcorr:
         add("-h", "--help",  action="store_true",
                 help="Print help message and exit")
 
-        add("-pb", "--PrimaryBeam",  action="store_true",
-                default=True,
-                help="call class command")
-
         add('-i', '--input',
             type=str,
             default=False,
@@ -97,7 +93,7 @@ class pbcorr:
             default=False,
             help='select telescope: MeerKAT, VLA, ACA')
 
-        args = parser.parse_args(argv)
+        args, unknown = parser.parse_known_args()
 
         if args.help:
             print '\n\t************* --- radiobs : pbCorr : Help --- **************\n'

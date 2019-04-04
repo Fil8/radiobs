@@ -2,9 +2,11 @@ LICENSE.md
 MANIFEST.in
 README.md
 requirements.txt
+ants/__init__.py
+ants/fluxInt.py
+ants/headPlay.py
+ants/pbCorr.py
 bin/radiobs
-radiobs/__init__.py
-radiobs/pbCorr.py
 radiobs.egg-info/PKG-INFO
 radiobs.egg-info/SOURCES.txt
 radiobs.egg-info/dependency_links.txt

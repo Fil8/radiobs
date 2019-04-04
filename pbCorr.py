@@ -23,11 +23,16 @@ class pbcorr:
 			obs_freq = float(hdr['FREQ'])	
 		else:
 			obs_freq = float(hdr['CRVAL3'])
-		
+
+		if 'RESTFREQ' in hdr:
+			hdr['FREQ'] = hdr['RESTFREQ']
+
 		if telescope == 'MeerKAT':
 			ant = 13.5
 		elif telescope == 'VLA':
 			ant = 25.
+		elif telescope == 'ACA':
+			ant = 7.
 
 		pb_fwhm = 1.02*(2.99792458E8)/obs_freq/ant/np.pi*180.
 		pb_fwhm_pix = pb_fwhm/hdr['CDELT2']

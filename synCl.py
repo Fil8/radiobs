@@ -10,9 +10,8 @@ class synClean:
 			self.rootdir = os.getcwd()+'/'
 
 
-	def writeSynageTable(self,freq,fluxIntegrated,fluxErr,title):
+	def writeSynageTable(self,synTable,freq,fluxIntegrated,fluxErr,title):
 
-			synTable = self.rootdir+'synageFl'+title+'.tbl'
 			title1='point 1\nlabel: '+title
 
 			f = open(synTable, 'w')
@@ -26,6 +25,9 @@ class synClean:
 					f.write(line)
 
 			f.close()
+			
+
+			return synTable
 
 	def readCIStats(self,CI_table):
 			

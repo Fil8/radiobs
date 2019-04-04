@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 
-import os, sys, string
-import numpy as np
 from astropy.io import fits
+import sys
 
 import argparse
 from  argparse import ArgumentParser
 import textwrap as _textwrap
 
-import pbCorr
+argv = [a for a in sys.argv[1:]]
 
 class MultilineFormatter(argparse.HelpFormatter):
     def _fill_text(self, text, width, indent):
@@ -25,7 +24,7 @@ argv = [a for a in sys.argv[1:]]
 for i, arg in enumerate(argv):
     if (arg[0] == '-') and arg[1].isdigit(): argv[i] = ' ' + arg
 
-parser = ArgumentParser(description='radiobs: PbCorr primary beam correction',
+parser = ArgumentParser(description='radiobs: prtHist print history of fits file',
                         formatter_class=MultilineFormatter,
                         add_help=False)
 
@@ -39,44 +38,38 @@ add('-i', '--input',
     default=False,
     help='''input .fits file''')
 
-add('-tel', '--telescope',
-    type=str,
-    default=False,
-    help='select telescope: MeerKAT, VLA, ACA')
 
 args = parser.parse_args(argv)
 
 if args.help:
-    print '\n\t************* --- radiobs : PbCorr : Help --- **************\n'
+    print '\n\t************* --- radiobs : prtHist : Help --- **************\n'
 
     parser.print_help()
 
     print ("""\nRun the following command:\n
-pbCorr -i inputFile.fits -tel <MeerKAT,VLA,ACA>
+prtHist -i inputFile.fits 
         """)
-    print '\n\t************* --- radiobs : PbCorr : DONE --- **************\n'
+    print '\n\t************* --- radiobs : prtHist : DONE --- **************\n'
 
     sys.exit(0)
 
 elif args.input:
-    
-    if args.telescope == False:
 
-        print ("""\n\t --- ERROR: Please specify telescope : MeerKAT,VLA,ACA> ---
-            """)
-        print '\n\t************* --- radiobs : PbCorr : DONE --- **************\n'
+    filename = args.input
+    files=fits.open(filename)
+
+    heads=files[0].header
+
+    if heads['HISTORY']:
+        print filename+'\n'
+        print heads['HISTORY']
+    else:
+        print '\n\t --- WARNING: History is not in header ---\n'
+
+else:
+
+        print ("""\n\t --- ERROR: Please specify input fits file ---
+                    """)
+        print '\n\t************* --- radiobs : prtHist : DONE --- **************\n'
         sys.exit(0)
-
-    pb = pbCorr.pbcorr()
-    fileName=args.input
-    telescope=args.telescope
-    ff=fits.open(fileName)
-    dats=ff[0].data
-    heads=ff[0].header
-    dats=np.squeeze(dats)
-    pb.BeamCorrect(fileName,dats,heads,telescope)  
-
-    print '\n\t************* --- Primary Beam Correction --- **************\n'
-
-    print '\n\t************* --- radiobs : PbCorr : DONE --- **************\n'
 

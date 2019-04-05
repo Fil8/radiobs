@@ -17,6 +17,7 @@ sys.path.append(os.path.join(RADIOBS_PATH, 'ants'))
 
 import pbCorr
 import headPlay
+import fitsPlay
 import fluxInt
 import cvMe
 
@@ -70,6 +71,10 @@ def main (argv):
         action='store_true',
         help= 'tool to measure fluxes')
 
+    add('-fp', '--fitsPlay',
+        action='store_true',
+        help= 'tool to modify fits images and cubes')
+
     add('-cv', '--convert',
         action='store_true',
         help= 'tool to convert astronomical units')
@@ -86,6 +91,9 @@ def main (argv):
 radiobs -pb\t correction for gaussian primary beam
 radiobs -hp\t tools to read and modify header of fits file
 radiobs -fl\t tools to measure flux of sources in fits image
+radiobs -fp\t tools to modify data in fits files
+radiobs -cv\t tools to convert astronomical units
+
             """)
         print '\n\t************* --- radiobs : DONE --- **************\n'
 
@@ -108,6 +116,12 @@ radiobs -fl\t tools to measure flux of sources in fits image
         print ('\n\t************* --- radiobs : fluxInt --- **************\n')
         fl = fluxInt.fluxint()
         fl.main(argv)
+
+    elif args.fitsPlay:
+        
+        print ('\n\t************* --- radiobs : fitsPlay --- **************\n')
+        fp = fitsPlay.fitsplay()
+        fp.main(argv)
 
     elif args.convert:
         

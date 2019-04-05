@@ -149,6 +149,20 @@ class headplay:
 
         return 0 
 
+    def to32Bits(self,fileName):
+
+        ff=fits.open(fileName)
+        dd=ff[0].data
+        hh=ff[0].header
+        dd=dd.astype('float32')
+
+        outfile=string.split(fileName,'.fits')[0]
+        outfile = outfile+'_bt32.fits'
+
+        fits.writeto(outfile,dd,hh,overwrite=True)
+
+        return 0
+
     def main(self,argv):
         
 
@@ -180,6 +194,9 @@ class headplay:
         add("-putHd", "--putHead",  action="store_true",
                 help="Put new keyword in header of fits file")
 
+        add("-to32", "--convert32bits",  action="store_true",
+                help="convert fits file to 32 bit")
+
         add('-i', '--input',
             type=str,
             default=False,
@@ -206,6 +223,7 @@ class headplay:
         radiobs -hp -prtHd  -i inputFile.fits 
         radiobs -hp -prtHis -i inputFile.fits 
         radiobs -hp -clHd   -i inputFile.fits 
+        radiobs -hp -to32   -i inputFile.fits 
         radiobs -hp -putHd  -i inputFile.fits  -k <key> -val <value> 
 
                 """)
@@ -244,6 +262,13 @@ class headplay:
             self.putHead(filename)
             print('\n\t************* ---   Keword set in header   --- **************')
             print('\n\t************* --- radiobs : putHead : DONE --- **************\n')
+
+        elif args.convert32bits:
+            print('\n\t************* ---    radiobs : to32Bits     --- **************')
+            filename = args.input
+            self.to32Bits(filename)
+            print('\n\t************* ---      file converted       --- **************')
+            print('\n\t************* --- radiobs : to32Bits : DONE --- **************\n')
 
         else:
             print ("""\n\t --- ERROR: Please specify input fits file and command ---""")

@@ -2,7 +2,9 @@ LICENSE.md
 MANIFEST.in
 README.md
 requirements.txt
+setup.py
 ants/__init__.py
+ants/fitSource.py
 ants/fluxInt.py
 ants/headPlay.py
 ants/pbCorr.py

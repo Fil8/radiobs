@@ -18,7 +18,7 @@ sys.path.append(os.path.join(RADIOBS_PATH, 'ants'))
 import pbCorr
 import headPlay
 import fluxInt
-
+import cvMe
 
 import pkg_resources
 try:
@@ -70,6 +70,10 @@ def main (argv):
         action='store_true',
         help= 'tool to measure fluxes')
 
+    add('-cv', '--convert',
+        action='store_true',
+        help= 'tool to convert astronomical units')
+
     args, unknown = parser.parse_known_args()
 
     if args.help and len(argv) ==1 :
@@ -79,8 +83,7 @@ def main (argv):
         parser.print_help()
 
         print ("""\nRun a command. This can be:\n
-radiobs\t\t(all tools)
-radiobs -pb\t correction for the primary beam
+radiobs -pb\t correction for gaussian primary beam
 radiobs -hp\t tools to read and modify header of fits file
 radiobs -fl\t tools to measure flux of sources in fits image
             """)
@@ -100,14 +103,28 @@ radiobs -fl\t tools to measure flux of sources in fits image
         hp = headPlay.headplay()
         hp.main(argv)
 
-
     elif args.fluxInt:
         
         print ('\n\t************* --- radiobs : fluxInt --- **************\n')
         fl = fluxInt.fluxint()
         fl.main(argv)
 
+    elif args.convert:
+        
+        print ('\n\t************* --- radiobs : cvMe --- **************\n')
+        cv = cvMe.convert()
+        cv.main(argv)
+
+
     else:
-        print ('\n\t ... you have not entered an available class function ... \n')
-        print ('\t************* --- radiobs : ERROR --- **************\n')
+        print ('\n\t************* --- radiobs : ERROR --- **************')
+        print ('\t... you have not entered an available class function ... \n')
+        print ("""\nRun one of the following commands:\n
+radiobs -pb\t correction for gaussian primary beam
+radiobs -hp\t tools to read and modify header of fits file
+radiobs -fl\t tools to measure flux of sources in fits image
+radiobs -cv\t tools to convert units
+            """)
+        print ('\t************* --- radiobs : DONE  --- *************\n')
+
         sys.exit(0)

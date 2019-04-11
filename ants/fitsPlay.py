@@ -32,6 +32,7 @@ class fitsplay:
         
         hh,dd = hp.cleanHead(fileName)
 
+
         if option == 'normMode':
             if vals:
                 print vals
@@ -42,7 +43,22 @@ class fitsplay:
                 dd[ymin:ymax,xmin:xmax] = 1.0
                 index = dd != 1.0
             if cutoff:
-                index = dd < cutoff
+                dd[np.isnan(dd)] = cutoff                
+                index = dd <= cutoff
+                dd[index==False] = 1.0
+
+        if option == 'minorCut':
+            if vals:
+                print vals
+                xmin=int(vals[0])
+                xmax=int(vals[1])
+                ymin=int(vals[2])
+                ymax=int(vals[3])
+                dd[ymin:ymax,xmin:xmax] = 1.0
+                index = dd != 1.0
+            if cutoff:
+                dd[np.isnan(dd)] = cutoff
+                index = dd >= cutoff
                 dd[index==False] = 1.0
 
         if option == 'cutInBox':
@@ -153,6 +169,22 @@ class fitsplay:
 
         return 0
 
+    def maskCut(self,fileName,maskName):
+
+        hh,dd = hp.cleanHead(fileName)
+
+        mh,mm = hp.cleanHead(maskName)
+
+        index = mm > 0.
+        
+        dd [index==False] = np.nan
+
+        aaa = string.split(fileName, '.fits')
+        output=aaa[0]+'_maskCut.fits'
+        fits.writeto(output,dd,hh,overwrite=True)
+
+        return 0
+
     def main(self,argv):
         
 
@@ -176,6 +208,9 @@ class fitsplay:
 
         add("-coCut", "--coordCut",  action="store_true",
                 help="cut subregion giving coordinates of low left and up right corner (hms,dms)")
+
+        add("-mCut", "--maskCut",  action="store_true",
+                help="cut file based on mask of 1 and 0")
 
         add('-i', '--input',
             type=str,
@@ -201,6 +236,11 @@ class fitsplay:
             action = 'store_true',
             default=False,
             help='mask image with cutoff within ds9 region')
+
+        add('-minCut', '--minorCut',
+            action = 'store_true',
+            default=False,
+            help='mask image values below cutoff')
 
         add('-val', '--values',
             type=int,
@@ -240,6 +280,11 @@ class fitsplay:
             nargs = 2,
             help='coordinates of upper right corner')
 
+        add('-mask', '--mask',
+            type=str,
+            default=False,
+            help='''mask .fits file''')
+
         args, uknown = parser.parse_known_args()
 
         if args.help:
@@ -254,6 +299,7 @@ class fitsplay:
         radiobs -fp -mm       -i inputFile.fits  -cutInds9 -r <region_name> - c <cutoff_value>         
         radiobs -fp -ctrCut   -i inputFile.fits -x <xSize> -y <ySize>
         radiobs -fp -coordCut -i inputFile.fits -p1 <ra dec low left corner (hms)> -p2 <ra dec up right corner (dms)>
+        radiobs -fp -maskCut  -i inputFile.fits -mask maskFile.fits
                 """)
             print('\n\t************* --- radiobs : fitsPlay : DONE --- **************\n')
 
@@ -277,6 +323,8 @@ class fitsplay:
                 option = 'ds9Reg'
             elif args.cutInds9 == True:
                 option = 'cutInds9'
+            elif args.minorCut == True:
+                option = 'minorCut'
             else:
                 option = 'normMode'
 
@@ -310,6 +358,15 @@ class fitsplay:
             self.centreCut(filename,rightAscensionP1,declinationP1,rightAscensionP2,declinationP2)
 
             print('\n\t************* --- radiobs : coordCut  : DONE --- **************')
+
+        elif args.maskCut:
+            print('\n\t************* ---     radiobs : maskCut    --- **************')
+        
+            filename = args.input
+            maskname = args.mask
+            self.maskCut(filename,maskname)
+
+            print('\n\t************* --- radiobs : maskCut  : DONE --- **************')
 
 
         else:

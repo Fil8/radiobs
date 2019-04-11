@@ -212,8 +212,7 @@ class headplay:
             default=False,
             help='value of new keyword')
 
-        args = parser.parse_args(argv)
-
+        args, uknown = parser.parse_known_args()
         if args.help:
             print('\n\t************* --- radiobs : headPlay : Help --- **************\n')
 
@@ -259,7 +258,7 @@ class headplay:
         elif args.putHead:
             print('\n\t************* --- radiobs : putHead  --- **************')
             filename = args.input
-            self.putHead(filename)
+            self.putHead(filename,args.key,args.value)
             print('\n\t************* ---   Keword set in header   --- **************')
             print('\n\t************* --- radiobs : putHead : DONE --- **************\n')
 

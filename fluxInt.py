@@ -168,9 +168,9 @@ class flInt:
         noise = np.nanstd(datas[m==False]) 
 
         mm = datas.copy()
-        mm[:,:] = 1.
+        mm[np.isnan(mm)] = 0.
         pixels = np.count_nonzero(mm[m==True])
-        
+        print pixels
         return background, noise, pixels
 
     def noiseMultiReg(self,ldata,lhead,region_dir):

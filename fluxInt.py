@@ -101,7 +101,7 @@ class flInt:
         return datas, background, noise, pixels, slave_regr.header
  
 
-    def maskDatReg(self,datas,heads,region,cutoff):
+    def maskDatReg(self,dats,heads,region,cutoff):
         '''
         mask datas within ds9 region estimate noise and background outside of it
         INPUT:
@@ -114,7 +114,7 @@ class flInt:
             rms
             masked_number_of_pixels
         '''
-
+        datas = dats.copy()
         # set polygonal mask from ds9 region
         r = pyregion.open(region).as_imagecoord(heads)
         shape = (heads['NAXIS2'], heads['NAXIS1'])

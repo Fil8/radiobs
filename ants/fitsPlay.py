@@ -312,6 +312,7 @@ class fitsplay:
             vals = args.values
             cutoff = args.cutoff
             region = args.region
+            print region
             if args.fillValue == 'nan':
                 fillValue = np.nan
             else:

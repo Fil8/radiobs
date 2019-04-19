@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os
+import sys, os, string
 import numpy as np
 from astropy.io import fits
 

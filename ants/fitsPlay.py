@@ -49,7 +49,6 @@ class fitsplay:
 
         if option == 'minorCut':
             if vals:
-                print vals
                 xmin=int(vals[0])
                 xmax=int(vals[1])
                 ymin=int(vals[2])
@@ -185,6 +184,18 @@ class fitsplay:
 
         return 0
 
+    def multVal(self,fileName,value):
+
+        hh,dd = hp.cleanHead(fileName)
+
+        dd = np.multiply(dd,value)
+
+        aaa = string.split(fileName, '.fits')
+        output=aaa[0]+'_corr.fits'
+        fits.writeto(output,dd,hh,overwrite=True)
+
+        return 0
+
     def main(self,argv):
         
 
@@ -211,6 +222,9 @@ class fitsplay:
 
         add("-mCut", "--maskCut",  action="store_true",
                 help="cut file based on mask of 1 and 0")
+
+        add("-mVal", "--multVal",  action="store_true",
+                help="multiply data by constant")
 
         add('-i', '--input',
             type=str,
@@ -252,6 +266,12 @@ class fitsplay:
             type=str,
             default='0',
             help='fill mask with zeros or nan')
+
+        add('-mK', '--multiplyConst',
+            type=float,
+            default=False,
+            help='multiply fits file by this constant')
+
 
         add('-x', '--xSize',
             type=int,
@@ -300,6 +320,7 @@ class fitsplay:
         radiobs -fp -ctrCut   -i inputFile.fits -x <xSize> -y <ySize>
         radiobs -fp -coordCut -i inputFile.fits -p1 <ra dec low left corner (hms)> -p2 <ra dec up right corner (dms)>
         radiobs -fp -maskCut  -i inputFile.fits -mask maskFile.fits
+        radiobs -fp -multVal  -i inputFile.fits -mK <cconstant_value>
                 """)
             print('\n\t************* --- radiobs : fitsPlay : DONE --- **************\n')
 
@@ -368,6 +389,16 @@ class fitsplay:
             self.maskCut(filename,maskname)
 
             print('\n\t************* --- radiobs : maskCut  : DONE --- **************')
+
+        elif args.multVal:
+            print('\n\t************* ---     radiobs : multVal   --- **************')
+        
+            filename = args.input
+            value = args.multiplyConst
+            self.multVal(filename,value)
+
+            print('\n\t************* --- radiobs : multVal  : DONE --- **************')
+
 
 
         else:

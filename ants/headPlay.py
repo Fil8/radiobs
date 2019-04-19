@@ -129,6 +129,19 @@ class headplay:
             del heads['PV2_1']
         if 'PV2_2' in heads:
             del heads['PV2_2']
+        if 'CD1_1' in heads:
+            heads['CDELT1'] = heads['CD1_1']
+            del heads['CD1_1']
+
+        if 'CD2_2' in heads:
+            heads['CDELT2'] = heads['CD2_2']
+            del heads['CD2_2']
+
+        if 'CD1_2' in heads:
+            del heads['CD1_2']
+
+        if 'CD2_1' in heads:
+            del heads['CD2_1']
 
         heads['NAXIS'] = 2
 

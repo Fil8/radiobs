@@ -224,7 +224,7 @@ class fluxint:
 
         numPixBeam= beamArea/pixArea
 
-
+        print fluxSum
         fluxInt = np.divide(fluxSum,numPixBeam)
 
         return fluxInt,numPixBeam

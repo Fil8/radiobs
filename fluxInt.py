@@ -289,7 +289,7 @@ class flInt:
             heads['BMIN'] = 9./3600.
 
         beamArea = 2*np.pi*float(heads['BMAJ'])*3600./2.35482*float(heads['BMIN'])*3600./2.35482
-
+        print heads['BMAJ']
         pixArea = -float(heads['CDELT2']*3600.)*float(heads['CDELT1']*3600.)
 
         numPixBeam= beamArea/pixArea

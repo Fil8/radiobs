@@ -205,7 +205,8 @@ class fluxint:
             pixels += np.count_nonzero(mask_tmp[m_noise==True])
         
         noise = np.nanstd(flux_values)
-        back = np.nanmean(flux_values)
+        back = np.nanmean(mean_values)
+        print 'aaaaaaa'
         pixels = pixels/len(r)
 
         return back,noise, pixels

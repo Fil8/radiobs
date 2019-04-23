@@ -195,7 +195,8 @@ class flInt:
             pixels += np.count_nonzero(mask_tmp[m_noise==True])
         
         noise = np.nanstd(flux_values)
-        back = np.nanmean(flux_values)
+        print 'aaaaa'
+        back = np.nanmean(mean_values)
         pixels = pixels/len(r)
 
         return back,noise, pixels

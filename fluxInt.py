@@ -200,8 +200,8 @@ class flInt:
         noise = np.nanstd(flux_values)
         back = np.nanmean(mean_values)
         backmed = np.nanmedian(med_values)
-        print back, backmed
-        print noise
+        perc = np.percentile(flux_values,67)
+
         pixels = pixels/len(r)
 
         return back,noise, pixels

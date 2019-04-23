@@ -170,7 +170,6 @@ class flInt:
         mm = datas.copy()
         mm[np.isnan(mm)] = 0.
         pixels = np.count_nonzero(mm[m==True])
-        print pixels
         return background, noise, pixels
 
     def noiseMultiReg(self,ldata,lhead,region_dir):
@@ -178,6 +177,8 @@ class flInt:
         r = [f for f in os.listdir(region_dir) if os.path.isfile(os.path.join(region_dir, f))]
 
         mean_values = np.zeros(len(r))
+        med_values = np.zeros(len(r))
+
         flux_values = np.zeros(len(r))
         pixels = 0.
         for i in xrange(0,len(r)):
@@ -192,11 +193,15 @@ class flInt:
             #mask_tmp[m==True] = np.nan
             flux_values[i] = np.nansum(mask_tmp[m_noise==True])
             mean_values[i] = np.nanmean(mask_tmp[m_noise==True])
+            med_values[i] = np.nanmedian(mask_tmp[m_noise==True])
+
             pixels += np.count_nonzero(mask_tmp[m_noise==True])
         
         noise = np.nanstd(flux_values)
-        print 'aaaaa'
         back = np.nanmean(mean_values)
+        backmed = np.nanmedian(med_values)
+        print back, backmed
+        print noise
         pixels = pixels/len(r)
 
         return back,noise, pixels

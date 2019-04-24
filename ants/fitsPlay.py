@@ -191,7 +191,21 @@ class fitsplay:
         dd = np.multiply(dd,value)
 
         aaa = string.split(fileName, '.fits')
-        output=aaa[0]+'_corr.fits'
+        output=aaa[0]+'_mult.fits'
+        fits.writeto(output,dd,hh,overwrite=True)
+
+        return 0
+
+    def subFits(self,fileName,subName):
+
+        hh,dd = hp.cleanHead(fileName)
+
+        subh,sub = hp.cleanHead(subName)
+
+        dd = np.subtract(dd,sub)
+
+        aaa = string.split(fileName, '.fits')
+        output=aaa[0]+'_sub.fits'
         fits.writeto(output,dd,hh,overwrite=True)
 
         return 0
@@ -225,6 +239,9 @@ class fitsplay:
 
         add("-mVal", "--multVal",  action="store_true",
                 help="multiply data by constant")
+
+        add("-sFit", "--subtractFits",  action="store_true",
+                help="subtract one image from another")
 
         add('-i', '--input',
             type=str,
@@ -305,6 +322,11 @@ class fitsplay:
             default=False,
             help='''mask .fits file''')
 
+        add('-si', '--subtractInput',
+            type=str,
+            default=False,
+            help='''.fits file to subtract from input''')
+
         args, uknown = parser.parse_known_args()
 
         if args.help:
@@ -320,7 +342,9 @@ class fitsplay:
         radiobs -fp -ctrCut   -i inputFile.fits -x <xSize> -y <ySize>
         radiobs -fp -coordCut -i inputFile.fits -p1 <ra dec low left corner (hms)> -p2 <ra dec up right corner (dms)>
         radiobs -fp -maskCut  -i inputFile.fits -mask maskFile.fits
-        radiobs -fp -multVal  -i inputFile.fits -mK <cconstant_value>
+        radiobs -fp -mVal  -i inputFile.fits -mK <constant_value>
+        radiobs -fp -sFit  -i inputFile.fits -si fileToSubtract.fits
+
                 """)
             print('\n\t************* --- radiobs : fitsPlay : DONE --- **************\n')
 
@@ -400,6 +424,14 @@ class fitsplay:
             print('\n\t************* --- radiobs : multVal  : DONE --- **************')
 
 
+        elif args.subtractFits:
+            print('\n\t************* ---     radiobs : subFits   --- **************')
+        
+            filename = args.input
+            subname = args.subtractInput
+            self.subFits(filename,subname)
+
+            print('\n\t************* --- radiobs : subFits  : DONE --- **************')
 
         else:
             print ("""\n\t --- ERROR: Please specify input fits file and command ---""")

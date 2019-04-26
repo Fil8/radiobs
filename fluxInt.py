@@ -92,6 +92,7 @@ class flInt:
         background = np.nanmean(slave_regr.data[index==False])
         self.noise = np.nanstd(slave_regr.data[index==False])
         
+        base.data[np.isnan(base.data[index==True])] = 0.0
         pixels = np.count_nonzero(base.data[index==True])
         noise = np.multiply(self.noise,np.sqrt(pixels))
         

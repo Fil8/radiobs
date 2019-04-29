@@ -165,7 +165,7 @@ class flInt:
         m = r.get_mask(shape=shape)
 
         #mean stats
-        background = np.nanmean(datas[m==False])
+        background = np.nanmean(datas[m==True])
         noise = np.nanstd(datas[m==False]) 
 
         mm = datas.copy()

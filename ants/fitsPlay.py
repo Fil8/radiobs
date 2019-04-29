@@ -111,7 +111,7 @@ class fitsplay:
 
     def centreCut(self,filename,SizeX,SizeY):
 
-        hh,dd = hp.cleanHead(fileName)
+        hh,dd = hp.cleanHead(filename)
 
         xmin = int(np.round(hh['CRPIX1'],0)-np.round(SizeX/2.,0))
         xmax = int(np.round(hh['CRPIX1'],0)+np.round(SizeX/2.,0))
@@ -129,7 +129,7 @@ class fitsplay:
         hh['NAXIS1'] = naxis1
         hh['NAXIS2'] = naxis2
 
-        outfile=string.split(fileName,'.fits')[0]
+        outfile=string.split(filename,'.fits')[0]
         outfile = outfile+'_cutCtr.fits'
 
         fits.writeto(outfile,newDD,hh,overwrite=True)

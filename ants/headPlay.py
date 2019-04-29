@@ -63,6 +63,7 @@ class headplay:
         if 'NAXIS3' in heads:
             del heads['NAXIS3']
         if 'CRVAL3' in heads:
+            heads['FREQ'] = heads['CRVAL3']
             del heads['CRVAL3']
         if 'CDELT3' in heads:
             del heads['CDELT3']

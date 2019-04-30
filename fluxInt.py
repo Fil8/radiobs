@@ -208,11 +208,11 @@ class flInt:
         
         print float(len(r))
         
-        noise = noise/np.sqrt(float(len(r)))
+        #noise = noise/np.sqrt(float(len(r)))
 
-        #pixels = pixels/len(r)
+        pixels = pixels/len(r)
 
-        noise = noise/np.sqrt(pixels)
+       # noise = noise/np.sqrt(pixels)
 
         return back,noise, pixels
 

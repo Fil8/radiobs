@@ -47,6 +47,7 @@ class pbcorr:
             ant = 7.
 
         pb_fwhm = 1.02*(2.99792458E8)/obs_freq/ant/np.pi*180.
+        
         pb_fwhm_pix = pb_fwhm/hdr['CDELT2']
         x, y = np.meshgrid(np.linspace(-hdr['NAXIS1']/2.,hdr['NAXIS1']/2.,hdr['NAXIS1']), 
                            np.linspace(-hdr['NAXIS2']/2.,hdr['NAXIS2']/2.,hdr['NAXIS2']))

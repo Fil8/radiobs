@@ -210,6 +210,64 @@ class fitsplay:
 
         return 0
 
+    def sumFits(self,fileName,subName):
+
+        hh,dd = hp.cleanHead(fileName)
+
+        subh,sub = hp.cleanHead(subName)
+
+        dd = np.add(dd,sub)
+
+        aaa = string.split(fileName, '.fits')
+        output=aaa[0]+'_sum.fits'
+        fits.writeto(output,dd,hh,overwrite=True)
+
+        return 0
+
+    def multFits(self,fileName,subName):
+
+        hh,dd = hp.cleanHead(fileName)
+
+        subh,sub = hp.cleanHead(subName)
+
+        dd = np.multiply(dd,sub)
+
+        aaa = string.split(fileName, '.fits')
+        output=aaa[0]+'_mult.fits'
+        fits.writeto(output,dd,hh,overwrite=True)
+
+        return 0
+
+    def divFits(self,fileName,subName):
+
+        hh,dd = hp.cleanHead(fileName)
+
+        subh,sub = hp.cleanHead(subName)
+
+        dd[dd==0.0] = np.nan
+
+        dd = np.divide(dd,sub)
+        dd[np.isinf(dd)] = np.nan
+
+        aaa = string.split(fileName, '.fits')
+        output=aaa[0]+'_div.fits'
+        fits.writeto(output,dd,hh,overwrite=True)
+
+        return 0
+
+    def sqrtFits(self,fileName):
+
+        hh,dd = hp.cleanHead(fileName)
+
+
+        dd = np.sqrt(dd)
+
+        aaa = string.split(fileName, '.fits')
+        output=aaa[0]+'_sqrt.fits'
+        fits.writeto(output,dd,hh,overwrite=True)
+
+        return 0
+
     def main(self,argv):
         
 
@@ -240,8 +298,20 @@ class fitsplay:
         add("-mVal", "--multVal",  action="store_true",
                 help="multiply data by constant")
 
-        add("-sFit", "--subtractFits",  action="store_true",
+        add("-subFit", "--subtractFits",  action="store_true",
                 help="subtract one image from another")
+
+        add("-sumFit", "--sumFits",  action="store_true",
+                help="sum one image by another")
+
+        add("-multFit", "--multiplyFits",  action="store_true",
+                help="multiply one image by another")
+
+        add("-divFit", "--divideFits",  action="store_true",
+                help="divide one image by another")
+
+        add("-sqrtFit", "--sqrtFits",  action="store_true",
+                help="square root of a fits file")
 
         add('-i', '--input',
             type=str,
@@ -289,7 +359,6 @@ class fitsplay:
             default=False,
             help='multiply fits file by this constant')
 
-
         add('-x', '--xSize',
             type=int,
             default=False,
@@ -322,10 +391,10 @@ class fitsplay:
             default=False,
             help='''mask .fits file''')
 
-        add('-si', '--subtractInput',
+        add('-opFits', '--secondInput',
             type=str,
             default=False,
-            help='''.fits file to subtract from input''')
+            help='''second .fits file as input''')
 
         args, uknown = parser.parse_known_args()
 
@@ -342,9 +411,12 @@ class fitsplay:
         radiobs -fp -ctrCut   -i inputFile.fits -x <xSize> -y <ySize>
         radiobs -fp -coordCut -i inputFile.fits -p1 <ra dec low left corner (hms)> -p2 <ra dec up right corner (dms)>
         radiobs -fp -maskCut  -i inputFile.fits -mask maskFile.fits
-        radiobs -fp -mVal  -i inputFile.fits -mK <constant_value>
-        radiobs -fp -sFit  -i inputFile.fits -si fileToSubtract.fits
-
+        radiobs -fp -mVal    -i inputFile.fits -mK <constant_value>
+        radiobs -fp -subFit  -i inputFile.fits -opFits fileToSubtract.fits
+        radiobs -fp -sumFit  -i inputFile.fits -opFits fileToSum.fits
+        radiobs -fp -multFit -i inputFile.fits -opFits fileToMultiply.fits
+        radiobs -fp -divFit  -i inputFile.fits -opFits fileToDivide.fits
+        radiobs -fp -sqrtFit -i inputFile.fits -opFits fileToSquareRoot.fits
                 """)
             print('\n\t************* --- radiobs : fitsPlay : DONE --- **************\n')
 
@@ -428,10 +500,47 @@ class fitsplay:
             print('\n\t************* ---     radiobs : subFits   --- **************')
         
             filename = args.input
-            subname = args.subtractInput
+            subname = args.secondInput
             self.subFits(filename,subname)
 
             print('\n\t************* --- radiobs : subFits  : DONE --- **************')
+
+        elif args.multiplyFits:
+            print('\n\t************* ---     radiobs : multFits   --- **************')
+        
+            filename = args.input
+            subname = args.secondInput
+            self.multFits(filename,subname)
+
+            print('\n\t************* --- radiobs : multFits  : DONE --- **************')
+
+
+        elif args.sumFits:
+            print('\n\t************* ---     radiobs : sumFits   --- **************')
+        
+            filename = args.input
+            subname = args.secondInput
+            self.sumFits(filename,subname)
+
+            print('\n\t************* --- radiobs : sumFits  : DONE --- **************')            
+
+        elif args.divideFits:
+            print('\n\t************* ---     radiobs : divFits   --- **************')
+        
+            filename = args.input
+            subname = args.secondInput
+            self.divFits(filename,subname)
+
+            print('\n\t************* --- radiobs : divFits  : DONE --- **************')     
+
+        elif args.sqrtFits:
+            print('\n\t************* ---     radiobs : sqrtFits   --- **************')
+        
+            filename = args.input
+            self.sqrtFits(filename)
+
+            print('\n\t************* --- radiobs : sqrtFits  : DONE --- **************')     
+
 
         else:
             print ("""\n\t --- ERROR: Please specify input fits file and command ---""")

@@ -9,8 +9,11 @@ import pyregion
 from prettytable import PrettyTable
 
 import headPlay
+import cvMe
 
 hp = headPlay.headplay()
+cvMe = cvMe.convert()
+
 
 import argparse
 from  argparse import ArgumentParser
@@ -206,11 +209,21 @@ class fluxint:
         
         noise = np.nanstd(flux_values)
         back = np.nanmean(mean_values)
-        print 'aaaaaaa'
         #pixels = pixels/len(r)
         
         return back,noise, pixels
 
+    def pointFlux(self,imageName,ra,dec):
+
+        hh, dd = hp.cleanHead(imageName,writeFile=False)
+        pixels = cvMe.coordToPix(imageName,ra,dec)
+
+        pixX = int(pixels[0,0])
+        pixY = int(pixels[0,1])
+
+        flux = dd[pixY,pixX]
+
+        return flux
 
     def measFlux(self,datas,heads,errFlux,option):
 
@@ -225,7 +238,6 @@ class fluxint:
 
         numPixBeam= beamArea/pixArea
 
-        print fluxSum
         fluxInt = np.divide(fluxSum,numPixBeam)
 
         return fluxInt,numPixBeam

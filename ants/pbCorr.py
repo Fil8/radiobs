@@ -70,6 +70,24 @@ class pbcorr:
         return out_pbcorr
 
 
+    #def beamArea(self,bx, by, z):
+    #    '''
+    #    Estimates the area of the beam of the observations
+    #    Parameters:
+    #        bx: x axis of the beam in arcsec (float)
+    #        by: y axis of the beam in arcsec (float)
+    #    Returns:
+    #        hi.beamarea: area of the beam in cm2    
+    #    '''
+
+    #    bxcm = c.ang2lin(bx, z)*1e6
+    #    bycm = c.ang2lin(by, z)*1e6
+    #    beamarea = (bxcm*bycm)*(PC**2)
+
+    #    print 'Beam Area = '+str(round(beamarea, 3))+' cm2'
+
+    #    return beamarea
+
     def main (self,argv):
 
         for i, arg in enumerate(argv):

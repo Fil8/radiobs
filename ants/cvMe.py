@@ -5,10 +5,17 @@ import numpy as np
 from astropy.io import fits, ascii
 from astropy.table import Table
 
+from astropy import units
+#from astropy.io import fits
+from astropy import wcs
+
 import argparse
 from  argparse import ArgumentParser
 import textwrap as _textwrap
 
+import headPlay
+
+hp = headPlay.headplay()
 
 class MultilineFormatter(argparse.HelpFormatter):
     def _fill_text(self, text, width, indent):
@@ -47,9 +54,61 @@ class convert:
         mm = float(dec[1])/60
         ss = float(dec[2])/3600
         
-        decDeg =  dd+mm+ss
-
+        if float(dec[0])>= 0:
+            decDeg = dd+mm+ss
+        else:
+            decDeg = -(dd+mm+ss)
+        
         return decDeg
+
+    def coordToPix(self,fileName,ra,dec,verbose=False):
+        '''
+        
+        Module called by abs_ex
+        Converts ra,dec of continuum sources
+        into pixel coordinates of the datacube
+        
+        '''
+
+        #I load the WCS coordinate system:
+        #open file
+
+        hh,dd = hp.cleanHead(fileName,writeFile=False)      
+        w=wcs.WCS(hh)    
+        
+
+        pixels=np.zeros([1,2])
+        count_out = 0
+        count_flag = 0 
+        #for i in xrange(0,len(ra)):
+        if ra == 'nan':
+            pixels[0, 0]= np.nan
+            pixels[0, 1]= np.nan
+            count_flag +=1
+            if verbose == True:
+                print '# Source # '+str([i])+ ' is flagged #'
+        else:
+            ra_deg = self.hms2deg(ra)
+            dec_deg = self.dms2deg(dec)
+            px,py=w.wcs_world2pix(ra_deg,dec_deg,0)
+            if (0 < round(px,0) < hh['NAXIS1'] and
+                    0 < round(py,0) < hh['NAXIS2']): 
+                pixels[0, 0]= round(px,0)
+                pixels[0, 1]= round(py,0)
+            else :
+                pixels[0, 0]= np.nan
+                pixels[0, 1]= np.nan
+                count_out +=1
+                if verbose == True:
+                    print '# Source #  lies outside the fov of the data cube #'
+
+#        print '# Total number of sources: \t'+str(len(ra))
+#        print '# Sources below threshold: \t'+str(count_flag)
+#        print '# Sources outside f.o.v.:\t'+str(count_out)
+#        print '# Sources to analyze: \t\t'+str(len(ra)-count_flag-count_out)+'\n'
+
+        return pixels
+
 
     def main(self,argv):
         

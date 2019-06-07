@@ -52,7 +52,7 @@ class headplay:
 
         return 0
 
-    def cleanHead(self,fileName):
+    def cleanHead(self,fileName,writeFile):
 
         base = fits.open(fileName)
         heads = base[0].header
@@ -146,7 +146,8 @@ class headplay:
 
         heads['NAXIS'] = 2
 
-        fits.writeto(fileName,datas,heads,overwrite=True)
+        if writeFile == True:
+            fits.writeto(fileName,datas,heads,overwrite=True)
 
         return heads, datas
 

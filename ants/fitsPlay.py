@@ -111,7 +111,7 @@ class fitsplay:
 
     def centreCut(self,filename,SizeX,SizeY):
 
-        hh,dd = hp.cleanHead(filename)
+        hh,dd = hp.cleanHead(filename,writeFile=False)
 
         xmin = int(np.round(hh['CRPIX1'],0)-np.round(SizeX/2.,0))
         xmax = int(np.round(hh['CRPIX1'],0)+np.round(SizeX/2.,0))
@@ -170,7 +170,7 @@ class fitsplay:
 
     def maskCut(self,fileName,maskName):
 
-        hh,dd = hp.cleanHead(fileName)
+        hh,dd = hp.cleanHead(fileName,writeFile=False)
 
         mh,mm = hp.cleanHead(maskName)
 
@@ -186,7 +186,7 @@ class fitsplay:
 
     def multVal(self,fileName,value):
 
-        hh,dd = hp.cleanHead(fileName)
+        hh,dd = hp.cleanHead(fileName,writeFile=False)
 
         dd = np.multiply(dd,value)
 
@@ -198,9 +198,9 @@ class fitsplay:
 
     def subFits(self,fileName,subName):
 
-        hh,dd = hp.cleanHead(fileName)
+        hh,dd = hp.cleanHead(fileName,writeFile=False)
 
-        subh,sub = hp.cleanHead(subName)
+        subh,sub = hp.cleanHead(subName,writeFile=False)
 
         dd = np.subtract(dd,sub)
 
@@ -212,9 +212,9 @@ class fitsplay:
 
     def sumFits(self,fileName,subName):
 
-        hh,dd = hp.cleanHead(fileName)
+        hh,dd = hp.cleanHead(fileName,writeFile=False)
 
-        subh,sub = hp.cleanHead(subName)
+        subh,sub = hp.cleanHead(subName,writeFile=False)
 
         dd = np.add(dd,sub)
 
@@ -226,9 +226,9 @@ class fitsplay:
 
     def multFits(self,fileName,subName):
 
-        hh,dd = hp.cleanHead(fileName)
+        hh,dd = hp.cleanHead(fileName,writeFile=False)
 
-        subh,sub = hp.cleanHead(subName)
+        subh,sub = hp.cleanHead(subName,writeFile=False)
 
         dd = np.multiply(dd,sub)
 
@@ -240,9 +240,9 @@ class fitsplay:
 
     def divFits(self,fileName,subName):
 
-        hh,dd = hp.cleanHead(fileName)
+        hh,dd = hp.cleanHead(fileName,writeFile=False)
 
-        subh,sub = hp.cleanHead(subName)
+        subh,sub = hp.cleanHead(subName,writeFile=False)
 
         dd[dd==0.0] = np.nan
 
@@ -257,7 +257,7 @@ class fitsplay:
 
     def sqrtFits(self,fileName):
 
-        hh,dd = hp.cleanHead(fileName)
+        hh,dd = hp.cleanHead(fileName,writeFile=False)
 
 
         dd = np.sqrt(dd)

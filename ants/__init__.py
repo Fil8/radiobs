@@ -20,6 +20,7 @@ import headPlay
 import fitsPlay
 import fluxInt
 import cvMe
+import fitSource
 
 import pkg_resources
 try:

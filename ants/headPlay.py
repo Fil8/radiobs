@@ -36,7 +36,7 @@ class headplay:
 
         files.close()
 
-        return 0
+        return heads
 
     def printHist(self,filename):
 
@@ -145,6 +145,89 @@ class headplay:
             del heads['CD2_1']
 
         heads['NAXIS'] = 2
+
+        if writeFile == True:
+            fits.writeto(fileName,datas,heads,overwrite=True)
+
+        return heads, datas
+
+    def cleanHeadCube(self,fileName,writeFile):
+
+        base = fits.open(fileName)
+        heads = base[0].header
+        
+        datas = base[0].data
+        datas = np.squeeze(datas)    
+            
+        if 'NAXIS4' in heads:
+            del heads['NAXIS4']     
+        if 'CRVAL4' in heads:        
+            del heads['CRVAL4']
+        if 'CDELT4' in heads:    
+            del heads['CDELT4']
+        if 'CRPIX4' in heads:    
+            del heads['CRPIX4']
+        if 'CTYPE4' in heads:    
+            del heads['CTYPE4'] 
+        if 'CROTA4' in heads:
+            del heads['CROTA4']  
+        if 'CUNIT4' in heads:
+            del heads['CUNIT4']
+        
+        #if 'WCSAXES' in heads:
+        #    heads['WCSAXES'] = 2
+        
+        if 'PC1_1' in heads:   
+            del heads['PC1_1']            
+        if 'PC2_1' in heads:   
+            del heads['PC2_1']           
+        if 'PC3_1' in heads:   
+            del heads['PC3_1']
+        if 'PC4_1' in heads:   
+            del heads['PC4_1']    
+        if 'PC1_2' in heads:
+            del heads['PC1_2']
+        if 'PC2_2' in heads:
+            del heads['PC2_2']
+        if 'PC3_2' in heads:
+            del heads['PC3_2']
+        if 'PC4_2' in heads:
+            del heads['PC4_2']
+        if 'PC1_3' in heads:
+            del heads['PC1_3']
+        if 'PC2_3' in heads:
+            del heads['PC2_3']
+        if 'PC3_3' in heads:    
+            del heads['PC3_3']
+        if 'PC4_3' in heads:    
+            del heads['PC4_3']
+        if 'PC1_4' in heads:
+            del heads['PC1_4']            
+        if 'PC2_4' in heads:
+            del heads['PC2_4']
+        if 'PC3_4' in heads:
+            del heads['PC3_4']
+        if 'PC4_4' in heads:
+            del heads['PC4_4']
+        if 'PV2_2' in heads:
+            del heads['PV2_1']
+        if 'PV2_2' in heads:
+            del heads['PV2_2']
+        if 'CD1_1' in heads:
+            heads['CDELT1'] = heads['CD1_1']
+            del heads['CD1_1']
+
+        if 'CD2_2' in heads:
+            heads['CDELT2'] = heads['CD2_2']
+            del heads['CD2_2']
+
+        if 'CD1_2' in heads:
+            del heads['CD1_2']
+
+        if 'CD2_1' in heads:
+            del heads['CD2_1']
+
+        heads['NAXIS'] = 3
 
         if writeFile == True:
             fits.writeto(fileName,datas,heads,overwrite=True)

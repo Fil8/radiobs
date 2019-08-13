@@ -3,6 +3,8 @@
 import sys, os, string
 import numpy as np
 from astropy.io import fits
+from astropy import wcs
+
 import pyregion
 
 
@@ -30,7 +32,7 @@ class fitsplay:
 
     def maskMe(self,fileName,vals,cutoff,fill_value,region,option):
         
-        hh,dd = hp.cleanHead(fileName)
+        hh,dd = hp.cleanHead(fileName,writeFile=False)
 
 
         if option == 'normMode':
@@ -136,14 +138,41 @@ class fitsplay:
 
         return 0
 
-    def coordCut(self,rap1,decp1,rap2,decp2):
+    def centreCutCube(self,filename,SizeX,SizeY):
 
-    
+        hh,dd = hp.cleanHeadCube(filename,writeFile=False)
+
+        xmin = int(np.round(hh['CRPIX1'],0)-np.round(SizeX/2.,0))
+        xmax = int(np.round(hh['CRPIX1'],0)+np.round(SizeX/2.,0))
+        ymin = int(np.round(hh['CRPIX2'],0)-np.round(SizeY/2.,0))
+        ymax = int(np.round(hh['CRPIX2'],0)+np.round(SizeY/2.,0))
+        
+        newDD = dd[:,ymin:ymax,xmin:xmax]
+        naxis1 = newDD.shape[1]
+        naxis2 = newDD.shape[0]
+        crpix1 = newDD.shape[1]/2
+        crpix2 = newDD.shape[0]/2
+
+        hh['CRPIX1'] = crpix1
+        hh['CRPIX2'] = crpix2
+        hh['NAXIS1'] = naxis1
+        hh['NAXIS2'] = naxis2
+
+        outfile=string.split(filename,'.fits')[0]
+        outfile = outfile+'_cutCtrCube.fits'
+
+        fits.writeto(outfile,newDD,hh,overwrite=True)
+
+        return 0
+
+    def coordCut(self,filename,rap1,decp1,rap2,decp2):
+
+   
         rap1 = cv.hms2deg(rap1)
-        rap2 = cv.hms2deg(rap1)
-        decp1 = cv.hms2deg(decp1)
-        decp2 = cv.hms2deg(decp2)
-        hh,dd = hp.cleanHead(fileName)
+        rap2 = cv.hms2deg(rap2)
+        decp1 = cv.dms2deg(decp1)
+        decp2 = cv.dms2deg(decp2)
+        hh,dd = hp.cleanHead(filename,writeFile=False)
 
         w = wcs.WCS(hh)    
 
@@ -157,14 +186,49 @@ class fitsplay:
         naxis1=xmax-xmin
         naxis2=ymax-ymin
         
+        raCtr,decCtr=w.wcs_pix2world(xmin+(xmax-xmin)/2,ymin+(ymax-ymin)/2,0)
+
+
         hh['NAXIS1']=naxis1
         hh['NAXIS2']=naxis2
         hh['CRPIX1']=naxis1/2
         hh['CRPIX2']=naxis2/2
-        
+        hh['CRVAL1']=float(raCtr)
+        hh['CRVAL2']=float(decCtr)  
+             
         aaa = string.split(filename, '.fits')
         output=aaa[0]+'_coordCut.fits'
-        fits.writeto(output,d[ymin:ymax,xmin:xmax],hh,overwrite=True)
+        fits.writeto(output,dd[ymin:ymax,xmin:xmax],hh,overwrite=True)
+
+        return 0
+
+    def pixCut(self,filename,xmin,ymin,xmax,ymax):
+
+
+        hh,dd = hp.cleanHead(filename,writeFile=False)
+
+        w = wcs.WCS(hh)    
+
+        xmin=int(xmin)
+        ymin=int(ymin)
+        
+        xmax=int(xmax)
+        ymax=int(ymax)
+
+        naxis1=xmax-xmin
+        naxis2=ymax-ymin
+        
+        raCtr,decCtr=w.wcs_pix2world(xmin+(xmax-xmin)/2,ymin+(ymax-ymin)/2,0)
+
+        hh['NAXIS1']=naxis1
+        hh['NAXIS2']=naxis2
+        hh['CRPIX1']=naxis1/2
+        hh['CRPIX2']=naxis2/2
+        hh['CRVAL1']=float(raCtr)
+        hh['CRVAL2']=float(decCtr)       
+        aaa = string.split(filename, '.fits')
+        output=aaa[0]+'_pixCut.fits'
+        fits.writeto(output,dd[ymin:ymax,xmin:xmax],hh,overwrite=True)
 
         return 0
 
@@ -172,7 +236,7 @@ class fitsplay:
 
         hh,dd = hp.cleanHead(fileName,writeFile=False)
 
-        mh,mm = hp.cleanHead(maskName)
+        mh,mm = hp.cleanHead(maskName,writeFile=False)
 
         index = mm > 0.
         
@@ -184,14 +248,16 @@ class fitsplay:
 
         return 0
 
-    def multVal(self,fileName,value):
+    def multVal(self,fileName,value,output=False):
 
         hh,dd = hp.cleanHead(fileName,writeFile=False)
 
         dd = np.multiply(dd,value)
 
         aaa = string.split(fileName, '.fits')
-        output=aaa[0]+'_mult.fits'
+        if output==False:
+            output=aaa[0]+'_mult.fits'
+
         fits.writeto(output,dd,hh,overwrite=True)
 
         return 0
@@ -244,10 +310,13 @@ class fitsplay:
 
         subh,sub = hp.cleanHead(subName,writeFile=False)
 
-        dd[dd==0.0] = np.nan
+        #dd[dd==0.0] = np.nan
 
         dd = np.divide(dd,sub)
-        dd[np.isinf(dd)] = np.nan
+        dd[np.isnan(dd)] = 0.0
+
+        dd[np.isinf(dd)] = 0.0
+
 
         aaa = string.split(fileName, '.fits')
         output=aaa[0]+'_div.fits'
@@ -289,8 +358,14 @@ class fitsplay:
         add("-ctrCut", "--centreCut",  action="store_true",
                 help="cut subregion from centre of image")
 
+        add("-ctrCutCube", "--centreCutCube",  action="store_true",
+                help="cut subregion from centre of image")
+
         add("-coCut", "--coordCut",  action="store_true",
                 help="cut subregion giving coordinates of low left and up right corner (hms,dms)")
+
+        add("-pxCut", "--pixCut",  action="store_true",
+                help="cut subregion giving pixel coordinates of low left and up right corner")
 
         add("-mCut", "--maskCut",  action="store_true",
                 help="cut file based on mask of 1 and 0")
@@ -386,6 +461,19 @@ class fitsplay:
             nargs = 2,
             help='coordinates of upper right corner')
 
+        add('-px1', '--lowPxLeft',
+            type=str,
+            default=False,
+            nargs = 2,
+            help='coordinates of low left corner')
+
+        add('-px2', '--upPxRight',
+            type=str,
+            default=False,
+            nargs = 2,
+            help='coordinates of upper right corner')
+
+
         add('-mask', '--mask',
             type=str,
             default=False,
@@ -409,6 +497,7 @@ class fitsplay:
         radiobs -fp -mm       -i inputFile.fits  -ds9 -r <region_name> 
         radiobs -fp -mm       -i inputFile.fits  -cutInds9 -r <region_name> - c <cutoff_value>         
         radiobs -fp -ctrCut   -i inputFile.fits -x <xSize> -y <ySize>
+        radiobs -fp -ctrCutCube   -i inputFile.fits -x <xSize> -y <ySize>
         radiobs -fp -coordCut -i inputFile.fits -p1 <ra dec low left corner (hms)> -p2 <ra dec up right corner (dms)>
         radiobs -fp -maskCut  -i inputFile.fits -mask maskFile.fits
         radiobs -fp -mVal    -i inputFile.fits -mK <constant_value>
@@ -460,22 +549,46 @@ class fitsplay:
 
             print('\t************* --- radiobs : ctrCut : DONE --- **************\n')
 
+        elif args.centreCutCube:
+            print('\n\t************* ---     radiobs : ctrCutCube    --- **************')
+
+            filename = args.input
+            x = args.xSize
+            y = args.ySize
+            self.centreCutCube(filename,x,y)
+
+            print('\t************* --- radiobs : ctrCutCube : DONE --- **************\n')
+
         elif args.coordCut:
             print('\n\t************* ---     radiobs : coordCut    --- **************')
-        
             filename = args.input
 
-            rightAscensionP1 = args.p1[0]
-            declinationP1 = args.p1[1]
-            rightAscensionP1 = rightAscension.replace(',','')
+            rightAscensionP1 = args.lowLeft[0]
+            declinationP1 = args.lowLeft[1]
+            #rightAscensionP1 = rightAscensionP1.replace(',','')
 
-            rightAscensionP2 = args.p2[0]
-            declinationP2 = args.p2[1]
-            rightAscensionP2 = rightAscension.replace(',','')
+            rightAscensionP2 = args.upRight[0]
+            declinationP2 = args.upRight[1]
+            #rightAscensionP2 = rightAscensionP2.replace(',','')
 
-            self.centreCut(filename,rightAscensionP1,declinationP1,rightAscensionP2,declinationP2)
+            self.coordCut(filename,rightAscensionP1,declinationP1,rightAscensionP2,declinationP2)
 
             print('\n\t************* --- radiobs : coordCut  : DONE --- **************')
+
+        elif args.pixCut:
+            print('\n\t************* ---     radiobs : pixCut    --- **************')
+            filename = args.input
+
+            pxP1 = args.lowPxLeft[0]
+            pyP1 = args.lowPxLeft[1]
+
+            pxP2 = args.upPxRight[0]
+            pyP2 = args.upPxRight[1]
+
+            self.pixCut(filename,pxP1,pyP1,pxP2,pyP2)
+
+            print('\n\t************* --- radiobs : pixCut  : DONE --- **************')
+
 
         elif args.maskCut:
             print('\n\t************* ---     radiobs : maskCut    --- **************')

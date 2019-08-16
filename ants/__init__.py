@@ -108,7 +108,7 @@ radiobs -cv\t tools to convert astronomical units
 
     elif args.headPlay:
         
-        print ('\n\t************* --- radiobs : headPlay --- **************\n')
+        #print ('\n\t************* --- radiobs : headPlay --- **************\n')
         hp = headPlay.headplay()
         hp.main(argv)
 

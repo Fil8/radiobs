@@ -9,6 +9,8 @@ from  argparse import ArgumentParser
 import textwrap as _textwrap
 
 
+
+
 class MultilineFormatter(argparse.HelpFormatter):
     def _fill_text(self, text, width, indent):
         text = self._whitespace_matcher.sub(' ', text).strip()
@@ -24,15 +26,29 @@ class headplay:
     def __init__(self):
 
         self.rootdir = os.getcwd()+'/'
+        self.C = 2.99792458e8 #m/s
+
 
     def printHead(self,filename):
+        """Function to print the header of a fits file to terminal.
+        Parameter:
+            filename : str
+                Name of input fits file
+        Return:
+            header : astropu.fits object
+                Header of input file
+        
+        Output:
+            Prints header of a fits file to terminal.
+        """
+
 
         files=fits.open(filename)
         heads=files[0].header
 
         for i in heads.keys():
             if i != 'HISTORY':
-                print i,'\t',heads[i]
+                print(str(i)+'\t'+str(heads[i]))
 
         files.close()
 
@@ -234,7 +250,7 @@ class headplay:
 
         return heads, datas
 
-    def putHead(self,fileName,key,value):
+    def putHead(self,fileName,key,value,output=False):
 
         files=fits.open(fileName)
 
@@ -242,10 +258,51 @@ class headplay:
         heads=files[0].header
 
         heads[key] = value
+        if 'DATAMIN' in heads:
+            del heads['DATAMIN']
+        if 'DATAMAX' in heads:
+            del heads['DATAMAX']
 
-        fits.writeto(fileName,datas,heads,overwrite=True)
+
+        if output==False:
+            output=fileName
+        
+        fits.writeto(output,datas,heads,overwrite=True)
 
         return 0 
+
+    def freqToVrad(self,fileName,output=False):
+        """Function to convert datacube from frequency in Hz to VRAD.
+        Parameter:
+            fileName : str
+                Name of input datacube .fits file
+        Return:
+            heads : 
+                Header of converted datacube
+        
+        Output:
+            Saves datacube in VRAD units into working directory.
+        """
+
+        heads = self.printHead(fileName)
+        f= fits.open(fileName)
+        datas=f[0].data
+        
+        vel = (heads['RESTFRQ']-heads['CRVAL3'])/heads['RESTFRQ']
+        velStep = (heads['RESTFRQ']-(heads['CRVAL3']+heads['CDELT3']))/heads['RESTFRQ']
+        velStep = velStep - vel
+
+        heads['CRVAL3'] = vel*self.C
+        heads['CDELT3'] = velStep*self.C
+        heads['CTYPE3'] = 'VRAD'
+
+        if output==False:
+            aaa = string.split(fileName, '.fits')
+            output=aaa[0]+'_vrad.fits'
+
+        fits.writeto(output,datas,heads,overwrite=True)     
+
+        return heads
 
     def to32Bits(self,fileName):
 
@@ -267,7 +324,7 @@ class headplay:
         for i, arg in enumerate(argv):
             if (arg[0] == '-') and arg[1].isdigit(): argv[i] = ' ' + arg
 
-        parser = ArgumentParser(description='radiobs: prtHead print header of fits file',
+        parser = ArgumentParser(description='radiobs: headPlay play with header of fits file',
                                 formatter_class=MultilineFormatter,
                                 add_help=False)
 
@@ -278,7 +335,7 @@ class headplay:
 
         add("-hp", "--headPlay",  action="store_true",
                 default=True,
-                help="call class command")
+                help="Call class command")
 
         add("-prtHd", "--printHead",  action="store_true",
                 help="Print header of fits file")
@@ -292,10 +349,13 @@ class headplay:
         add("-putHd", "--putHead",  action="store_true",
                 help="Put new keyword in header of fits file")
 
-        add("-to32", "--convert32bits",  action="store_true",
-                help="convert fits file to 32 bit")
+        add("-vrad", "--freqToVrad",  action="store_true",
+                help="Convert datacube from frequency to radio velocity")
 
-        add('-i', '--input',
+        add("-to32", "--cvTo32bit",  action="store_true",
+                help="Convert fits file to 32 bit")
+
+        add('-i', '--in',
             type=str,
             default=False,
             help='''input .fits file''')
@@ -305,7 +365,7 @@ class headplay:
             default=False,
             help='name of keyword to insert')
 
-        add('-val', '--value',
+        add('-v', '--val',
             type=str,
             default=False,
             help='value of new keyword')
@@ -321,8 +381,8 @@ class headplay:
         radiobs -hp -prtHis -i inputFile.fits 
         radiobs -hp -clHd   -i inputFile.fits 
         radiobs -hp -to32   -i inputFile.fits 
+        radiobs -hp -vrad   -i inputFile.fits
         radiobs -hp -putHd  -i inputFile.fits  -k <key> -val <value> 
-
                 """)
             print('\n\t************* --- radiobs : headPlay : DONE --- **************\n')
 
@@ -359,6 +419,15 @@ class headplay:
             self.putHead(filename,args.key,args.value)
             print('\n\t************* ---   Keword set in header   --- **************')
             print('\n\t************* --- radiobs : putHead : DONE --- **************\n')
+
+        elif args.vrad:
+            print('\n\t************* ---     radiobs : freqToVrad    --- **************')
+
+            filename = args.input
+            self.freqToVrad(filename)
+        
+            print('\n\t************* ---       Conversion is Done       --- **************')
+            print('\n\t************* --- radiobs : freqToVrad : DONE --- **************\n')
 
         elif args.convert32bits:
             print('\n\t************* ---    radiobs : to32Bits     --- **************')

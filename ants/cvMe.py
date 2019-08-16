@@ -108,6 +108,8 @@ class convert:
 #        print '# Sources to analyze: \t\t'+str(len(ra)-count_flag-count_out)+'\n'
 
         return pixels
+    
+
 
 
     def main(self,argv):

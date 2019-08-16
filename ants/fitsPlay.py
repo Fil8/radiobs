@@ -254,8 +254,8 @@ class fitsplay:
 
         dd = np.multiply(dd,value)
 
-        aaa = string.split(fileName, '.fits')
         if output==False:
+            aaa = string.split(fileName, '.fits')
             output=aaa[0]+'_mult.fits'
 
         fits.writeto(output,dd,hh,overwrite=True)

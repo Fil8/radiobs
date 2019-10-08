@@ -4,10 +4,15 @@ README.md
 requirements.txt
 setup.py
 ants/__init__.py
+ants/absInt.py
+ants/convRegr.py
+ants/cvMe.py
 ants/fitSource.py
+ants/fitsPlay.py
 ants/fluxInt.py
 ants/headPlay.py
 ants/pbCorr.py
+ants/synCl.py
 bin/radiobs
 radiobs.egg-info/PKG-INFO
 radiobs.egg-info/SOURCES.txt

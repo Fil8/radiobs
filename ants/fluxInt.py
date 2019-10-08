@@ -5,8 +5,9 @@ import numpy as np
 from astropy.io import fits, ascii
 from astropy.table import Table
 
-import pyregion
 from prettytable import PrettyTable
+
+import pyregion
 
 import headPlay
 import cvMe
@@ -137,7 +138,9 @@ class fluxint:
         #mean stats
         background = np.nanmean(datas[m==False])
         noise = np.nanstd(datas[m==False])
-        
+        datanoise = datas.copy()
+        datanoise[m==True] = np.nan
+
         #if cutoff == 0.0:
         self.cutoff = np.nan
         #elif cutoff < 0:
@@ -154,7 +157,10 @@ class fluxint:
         mm = datas.copy()
         mm[:,:] = 1.
         self.pixels = np.count_nonzero(mm[m==True])
-        
+        mm[:,:] = 0.
+        mm[m==True] = 1.
+        print 'cazzo'
+        fits.writeto('/Users/maccagni/tmp.fits',mm,heads,overwrite=True)        
         #noise = np.multiply(noise,np.sqrt(self.pixels))
         
         return datas, background, noise, self.pixels
@@ -228,12 +234,15 @@ class fluxint:
     def measFlux(self,datas,heads,errFlux,option):
 
         fluxSum=np.nansum(datas)
+        print option
+
         if option=='RgCv':
-            heads['BMAJ'] = 18.5/3600.
-            heads['BMIN'] = 9./3600.
-
+            heads['BMAJ'] = 18.1/3600.
+            heads['BMIN'] = 18.1/3600.
+            print heads['BMAJ'], heads['BMIN']
+        
         beamArea = 2*np.pi*float(heads['BMAJ'])*3600./2.35482*float(heads['BMIN'])*3600./2.35482
-
+        print beamArea
         pixArea = -float(heads['CDELT2']*3600.)*float(heads['CDELT1']*3600.)
 
         numPixBeam= beamArea/pixArea
@@ -247,6 +256,7 @@ class fluxint:
         #noiseInt = np.divide(noise,numPixBeam)
         noiseInt = float(noise)
         fluxErr = np.sqrt(np.power(fluxInt/100.*errFlux,2)+np.power(noiseInt,2))          
+        
         alldata = np.array([freq*1e-6,np.round(fluxInt,8),np.round(noiseInt,8),np.round(fluxErr,6),np.round(float(heads['BMAJ'])*3600.,3),
             np.round(float(heads['BMIN'])*3600.,3),np.round(float(heads['CDELT2'])*3600.,0),np.round(numPixBeam,3),np.round(self.cutoff*1e3,4),np.round(self.pixels,0)])
 

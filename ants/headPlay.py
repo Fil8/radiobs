@@ -355,7 +355,7 @@ class headplay:
         add("-to32", "--cvTo32bit",  action="store_true",
                 help="Convert fits file to 32 bit")
 
-        add('-i', '--in',
+        add('-i', '--input',
             type=str,
             default=False,
             help='''input .fits file''')
@@ -390,7 +390,7 @@ class headplay:
 
         elif args.printHead:
             print('\n\t************* ---     radiobs : printHead    --- **************')
-
+            print args.input
             filename = args.input
             self.printHead(filename)
         
@@ -416,11 +416,11 @@ class headplay:
         elif args.putHead:
             print('\n\t************* --- radiobs : putHead  --- **************')
             filename = args.input
-            self.putHead(filename,args.key,args.value)
+            self.putHead(filename,args.key,args.val)
             print('\n\t************* ---   Keword set in header   --- **************')
             print('\n\t************* --- radiobs : putHead : DONE --- **************\n')
 
-        elif args.vrad:
+        elif args.freqToVrad:
             print('\n\t************* ---     radiobs : freqToVrad    --- **************')
 
             filename = args.input
@@ -429,7 +429,7 @@ class headplay:
             print('\n\t************* ---       Conversion is Done       --- **************')
             print('\n\t************* --- radiobs : freqToVrad : DONE --- **************\n')
 
-        elif args.convert32bits:
+        elif args.cvTo32bit:
             print('\n\t************* ---    radiobs : to32Bits     --- **************')
             filename = args.input
             self.to32Bits(filename)

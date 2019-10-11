@@ -247,7 +247,7 @@ class headplay:
 
         if writeFile == True:
             fits.writeto(fileName,datas,heads,overwrite=True)
-
+        print heads
         return heads, datas
 
     def putHead(self,fileName,key,value,output=False):
@@ -289,6 +289,7 @@ class headplay:
         datas=f[0].data
         
         vel = (heads['RESTFRQ']-heads['CRVAL3'])/heads['RESTFRQ']
+        
         velStep = (heads['RESTFRQ']-(heads['CRVAL3']+heads['CDELT3']))/heads['RESTFRQ']
         velStep = velStep - vel
 

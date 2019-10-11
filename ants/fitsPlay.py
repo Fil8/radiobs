@@ -121,8 +121,10 @@ class fitsplay:
         ymax = int(np.round(hh['CRPIX2'],0)+np.round(SizeY/2.,0))
         
         newDD = dd[ymin:ymax,xmin:xmax]
+        
         naxis1 = newDD.shape[1]
         naxis2 = newDD.shape[0]
+        
         crpix1 = newDD.shape[1]/2
         crpix2 = newDD.shape[0]/2
 
@@ -144,12 +146,15 @@ class fitsplay:
 
         xmin = int(np.round(hh['CRPIX1'],0)-np.round(SizeX/2.,0))
         xmax = int(np.round(hh['CRPIX1'],0)+np.round(SizeX/2.,0))
+        
         ymin = int(np.round(hh['CRPIX2'],0)-np.round(SizeY/2.,0))
         ymax = int(np.round(hh['CRPIX2'],0)+np.round(SizeY/2.,0))
         
         newDD = dd[:,ymin:ymax,xmin:xmax]
+        
         naxis1 = newDD.shape[1]
         naxis2 = newDD.shape[0]
+        
         crpix1 = newDD.shape[1]/2
         crpix2 = newDD.shape[0]/2
 

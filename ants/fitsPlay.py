@@ -207,6 +207,32 @@ class fitsplay:
 
         return 0
 
+    def zCubeCut(self,filename,zmin,zmax, output=False):
+
+        fileMain = fits.open(filename)
+        hh = fileMain[0].header
+        dd = fileMain[0].data
+
+        newDD = dd[zmin:zmax,:,:]
+
+        hh['NAXIS3'] = newDD.shape[0]
+
+        hh['CRPIX3'] = 1
+
+        crval3 = hh['CRVAL3']+(zmin*hh['CDELT3'])
+
+        print crval3
+        print hh['CDELT3']
+        hh['CRVAL3'] = crval3
+
+        if output==False:
+            aaa = string.split(filename, '.fits')
+            output=aaa[0]+'_zCubeCut.fits'
+        
+        fits.writeto(output,newDD,hh,overwrite=True)
+
+        return 0
+
     def pixCut(self,filename,xmin,ymin,xmax,ymax):
 
 
@@ -295,7 +321,7 @@ class fitsplay:
 
         return 0
 
-    def multFits(self,fileName,subName):
+    def multFits(self,fileName,subName,output=False):
 
         hh,dd = hp.cleanHead(fileName,writeFile=False)
 
@@ -304,12 +330,15 @@ class fitsplay:
         dd = np.multiply(dd,sub)
 
         aaa = string.split(fileName, '.fits')
-        output=aaa[0]+'_mult.fits'
+        if output==False:
+            aaa = string.split(fileName, '.fits')
+            output=aaa[0]+'_mult.fits'
+
         fits.writeto(output,dd,hh,overwrite=True)
 
         return 0
 
-    def divFits(self,fileName,subName):
+    def divFits(self,fileName,subName,output=False):
 
         hh,dd = hp.cleanHead(fileName,writeFile=False)
 
@@ -324,7 +353,10 @@ class fitsplay:
 
 
         aaa = string.split(fileName, '.fits')
-        output=aaa[0]+'_div.fits'
+        if output==False:
+            aaa = string.split(fileName, '.fits')
+            output=aaa[0]+'_mult.fits'
+        
         fits.writeto(output,dd,hh,overwrite=True)
 
         return 0

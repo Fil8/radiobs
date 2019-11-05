@@ -106,6 +106,22 @@ class headplay:
             del heads['CROTA4']  
         if 'CUNIT4' in heads:
             del heads['CUNIT4']
+
+        if 'DATAMIN' in heads:
+            heads.set('DATAMIN', heads['DATAMIN'], after='BTYPE')
+            print 'culo'
+        if 'DATAMAC' in heads:    
+            heads.set('DATAMAX', heads['DATAMAX'], before='DATAMIN')
+        
+        if 'CELLSCAL' in heads:        
+            heads.set('CELLSCAL', heads['CELLSCAL'], after='DATAMIN')
+
+        if 'RESTFREQ' in heads:
+            heads.set('RESTFREQ', heads['RESTFREQ'], after='DATAMIN')
+        
+        if 'SPECSYS3' in heads:
+            heads.set('SPECSYS3', heads['SPECSYS3'], after='RESTFREQ')
+
         
         if 'WCSAXES' in heads:
             heads['WCSAXES'] = 2
@@ -168,7 +184,7 @@ class headplay:
         return heads, datas
 
     def cleanHeadCube(self,fileName,writeFile):
-
+       
         base = fits.open(fileName)
         heads = base[0].header
         
@@ -263,10 +279,11 @@ class headplay:
         if 'DATAMAX' in heads:
             del heads['DATAMAX']
 
-
         if output==False:
             output=fileName
-        
+        print key,value        
+
+        print heads
         fits.writeto(output,datas,heads,overwrite=True)
 
         return 0 
@@ -410,7 +427,7 @@ class headplay:
         elif args.cleanHead:
             print('\n\t************* ---     radiobs : cleanHead    --- **************')
             filename = args.input
-            self.cleanHead(filename)
+            self.cleanHead(filename,writeFile=True)
             print('\n\t************* ---       Header is clean      --- **************')
             print('\n\t************* --- radiobs : cleanHead : DONE --- **************\n')
 

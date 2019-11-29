@@ -45,11 +45,17 @@ class gplay:
         
         self.cfg_par = yaml.load(cfg)
    
-        runDir = self.cfg_par['general']['workdir']+self.cfg_par['general']['runName']
+        runDir = self.cfg_par['general']['workdir']+self.cfg_par['general']['runName']+'/'
         if not os.path.exists(runDir):
             os.mkdir(runDir)
         self.cfg_par['general']['runNameDir'] = runDir
+
+        outTableName = self.cfg_par['general']['runNameDir']+'gPlayOut.fits'
+
+        self.cfg_par['general']['outTableName'] = outTableName
+
         #if self.cfg_par['general']['verbose'] == True:
+
         #    print yaml.dump(self.cfg_par)
 
 
@@ -264,8 +270,12 @@ class gplay:
         key = 'general'
         workDir = self.cfg_par[key]['workdir']
         #open line lineList
-        lineInfo = self.openLineList(workDir+self.cfg_par[key]['lineListName'])
+        lineInfo = self.openLineList()
+        diffusion = 1e-5
 
+        #make outputTable
+        #outTable = self.makeOutputTable(lineInfo)
+        
         #open table for bins
         wave,xAxis,yAxis,pxSize,noiseBin, vorBinInfo = self.openTablesPPXF(workDir+self.cfg_par[key]['tableBinName'],
             workDir+self.cfg_par[key]['tableSpecName'])
@@ -279,26 +289,26 @@ class gplay:
         self.cfg_par[key]['runNameDir'] = runNameDir
         if not os.path.exists(runNameDir):
             os.mkdir(runNameDir)
-        #call model
 
         #define x-axis array
-        #wave = ((np.linspace(1, dd.shape[0], dd.shape[0]) - hh['CRPIX3']) * hh['CDELT3'] + hh['CRVAL3'])
         lambdaMin = np.log(self.cfg_par['gFit']['lambdaMin'])
         lambdaMax = np.log(self.cfg_par['gFit']['lambdaMax'])
 
 
         idxMin = int(np.where(abs(wave-lambdaMin)==abs(wave-lambdaMin).min())[0]) 
-        idxMax = int(np.where(abs(wave-lambdaMax)==abs(wave-lambdaMax).min())[0] )# If you want the index of the element of array (array) nearest to the the given number (num)
+        idxMax = int(np.where(abs(wave-lambdaMax)==abs(wave-lambdaMax).min())[0] )
 
-        # ?
-        diffusion = 1e-3
-        binID = np.zeros([dd.shape[1],dd.shape[2]])*np.nan
 
-        #loop over X,Y of datacube -> why not over single Voronoi bins?
-        for j in xrange(205,206):
-            for i in xrange(250,251):
-        #for j in xrange(0,dd.shape[1]):
-        #    for i in xrange(0,dd.shape[2]):
+        Ydim = dd.shape[1]
+        Xdim = dd.shape[2]
+        
+        binID, binArr, fitResArr, lineArr = self.makeInputArrays(lineInfo, Xdim, Ydim)
+       
+        counter = 0
+        #for j in xrange(205,208):
+        #    for i in xrange(250,252):
+        for j in xrange(0,dd.shape[1]):
+            for i in xrange(0,dd.shape[2]):
                 
                 y = dd[idxMin:idxMax,j,i]
 
@@ -307,69 +317,59 @@ class gplay:
                 #check if spectrum is not empty                   
                 if np.sum(y)>0:
 
-
                     gMod,gPars = self.lineModDef(waveCut,y,lineInfo)
-
 
                     # identify voronoi bin
                     xVal = xAxis[i]
                     yVal = yAxis[j]
+                    index = np.where((vorBinInfo['X'] < (xVal+pxSize/2.+diffusion)) & 
+                    ((xVal-pxSize/2.-diffusion) < vorBinInfo['X']) & (vorBinInfo['Y'] < (yVal+pxSize/2.+diffusion)) & 
+                    ((yVal-pxSize/2.-diffusion) < vorBinInfo['Y']))
+                    if np.sum(index)>0: 
+                        binArr = self.updateBinArray(binArr,vorBinInfo,index,i,j,counter)
+                        binIDName = binArr['BIN_ID'][counter]     
+                    else:
 
-                    index = np.where((vorBinInfo['X'] < (xVal+pxSize/2.)) & 
-                    ((xVal-pxSize/2.) < vorBinInfo['X']) & (vorBinInfo['Y'] < (yVal+pxSize/2.)) & 
-                    ((yVal-pxSize/2.) < vorBinInfo['Y']))
+                        fitResArr = np.delete(fitResArr,counter)
+                        lineArr = np.delete(lineArr,counter)  
+                        #counter +=1
 
-                    binIDName = vorBinInfo['BIN_ID'][index]
-                    IDName = vorBinInfo['ID'][index]
-                    xx = vorBinInfo['X'][index]
-                    yy = vorBinInfo['Y'][index]
-                    PixX = i
-                    PixY = j
-  
-                    binFitName =runNameDir+str(binIDName)+'fit.sav'
-
-                    singleVorBinInfo = {'ID':IDName,'BIN_ID':binIDName, 'X':xx, 'Y':yy, 'PixX':PixX, 'PixY': PixY}
- 
+                        continue
+                    
                     #check if it is first time in bin
-                    if binIDName not in binID[:,:]:
+                    if binIDName not in binID[:,:] and index is not None:
+
+                        
                         binID[j,i] = binIDName
-                        noiseVec = noiseBin[binIDName][:] [0] 
+                        noiseVec = noiseBin[binIDName][:]
 
                         # FIT
                         result = gMod.fit(y, gPars, x=waveCut)
-                        #print(result.fit_report())
 
-                        
+                        fitResArr = self.updateFitArray(fitResArr,result,binIDName,counter)
+                        lineArr = self.updateLineArray(lineArr,result,lineInfo,binIDName,counter)
+
                         #plot Fit
-                        #self.plotSpecFit(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo)
-                        #self.plotLineZoom(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo)
+                        #self.plotSpecFit(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
+                        self.plotLineZoom(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
 
-                        #save Fit for fast upload 
+                    else:
 
-                        #save_modelresult(result,binFitName)
+                        fitResArr = np.delete(fitResArr,counter)
+                        lineArr = np.delete(lineArr,counter)                                
 
-                        #mom0[j,i] = fitRes['amplitude']
-                        #mom1[j,i] = fitRes['center']
+                counter+=1
 
-                    #else:
-
-#                        result = load_modelresult(binFitName)
-#                        self.loadFitFromRightBin(binNumber)
-
-
-
-                    #self.updateFitTable(result,gName)
-                        #self.writeOutputTable(lineInfo,singleVorBinInfo,result) 
-                                                
-                else:
-                    pass
-
-        print('''\t+---------+\n\t fits done\n\t+---------+''')
+        self.saveOutputTable(binArr, fitResArr, lineArr)
     
-        return lineInfo,singleVorBinInfo,result
+        print('''\t+---------+\n\t gFit done\n\t+---------+''')
     
-    def openLineList(self,lineList):
-        
+        return 0
+    
+    def openLineList(self):
+        workDir = self.cfg_par['general']['workdir']
+       
+        lineList = workDir+self.cfg_par['general']['lineListName']
         lineInfo = ascii.read(lineList) 
 
         #mask line list 
@@ -485,29 +485,91 @@ class gplay:
 
         return wave,xAxis,yAxis,pxSize,noiseBin,dataTab
 
-    def updateFitTable(self,result,gName):
+    def makeInputArrays(self,lineInfo, Xdim,Ydim):
+
+        binID = np.zeros([Ydim,Xdim],dtype=int)
+
+        nam = tuple (['ID', 'BIN_ID', 'X', 'Y', 'PixX', 'PixY'])
+        binArr = np.empty([Ydim*Xdim], dtype={'names':nam,
+                          'formats':('i4', 'i4', 'i4', 'f8', 'f8', 'i4', 'i4')})
+        nam = tuple(['BIN_ID', 'fitSuccess', 'redChi', 'aic', 'bic', 'nData', 'nVariables', 'nFev'])
+        fitResArr = np.zeros([Ydim*Xdim], dtype={'names':nam,
+                          'formats':( 'i4', '?', 'f8', 'f8', 'f8', 'i4', 'i4', 'i4')})
+
+        lineNameList = []
+        frmList = []
+        for i in xrange (0,len(lineInfo['ID'])):
+            lineName = str(lineInfo['Name'][i])+str(int(lineInfo['Wave'][i]))
+            if '[' in lineName:
+                lineName = lineName.replace("[", "")
+                lineName = lineName.replace("]", "")
+
+            lineNameList.append(lineName)
+            frmList.append('i4')
+            lineNameList.append('g1_Amp_'+lineName)
+            frmList.append('f8')
+            lineNameList.append('g1_Height_'+lineName)
+            frmList.append('f8')
+            lineNameList.append('g1_Centre_'+lineName)
+            frmList.append('f8')
+            lineNameList.append('g1_Sigma_'+lineName)
+            frmList.append('f8')
+            lineNameList.append('g1_FWHM_'+lineName)
+            frmList.append('f8')
+
+            
+            if self.cfg_par['gFit']['modName'] == 'g2':
+                
+                lineNameList.append('g2_Amp_'+lineName)
+                frmList.append('f8')
+                lineNameList.append('g2_Height_'+lineName)
+                frmList.append('f8')
+                lineNameList.append('g2_Centre_'+lineName)
+                frmList.append('f8')
+                lineNameList.append('g2_Sigma_'+lineName)
+                frmList.append('f8')
+                lineNameList.append('g2_FWHM_'+lineName)
+                frmList.append('f8')
+
+            
+                if self.cfg_par['gFit']['modName'] == 'g3':
+
+                    lineNameList.append('g3_Amp_'+lineName)
+                    frmList.append('f8')
+                    lineNameList.append('g3_Height_'+lineName)
+                    frmList.append('f8')
+                    lineNameList.append('g3_Centre_'+lineName)
+                    frmList.append('f8')
+                    lineNameList.append('g3_Sigma_'+lineName)
+                    frmList.append('f8')
+                    lineNameList.append('g3_FWHM_'+lineName)
+                    frmList.append('f8')
+        
+        if self.cfg_par['gFit']['modName'] == 'g1':
+            lineArr = np.zeros([Ydim*Xdim], dtype={'names':(lineNameList), 'formats':(frmList)})
+        elif self.cfg_par['gFit']['modName'] == 'g2':
+            lineArr = np.zeros([Ydim*Xdim], dtype={'names':(lineNameList), 'formats':(frmList)})
+        elif self.cfg_par['gFit']['modName'] == 'g3':
+            lineArr = np.zeros([Ydim*Xdim], dtype={'names':(lineNameList), 'formats':(frmList)})
+
+        return binID, binArr, fitResArr, lineArr
 
 
-        for k in xrange (0,len(gName)):
+    def updateBinArray(self,binArr,vorBinInfo,index,i,j,counter):
+  
+        print vorBinInfo['BIN_ID'][index]
 
-            amp = fitRes[gName[k]+'_amplitude']
-            ctr = fitRes[gName[k]+'_center']
-            sig = fitRes[gName[k]+'_sigma']
+        binArr['BIN_ID'][counter] = vorBinInfo['BIN_ID'][index]
+        binArr['ID'][counter] = vorBinInfo['ID'][index]
+        binArr['X'][counter] = vorBinInfo['X'][index]
+        binArr['Y'][counter] = vorBinInfo['Y'][index]
+        binArr['PixX'][counter] = int(i)
+        binArr['PixY'][counter] = int(j)
 
-            fwhm = fitRes[gName[k]+'_fwhm']
-            height = fitRes[gName[k]+'_height']
+        return binArr
 
 
-            amp_err = result.params[gName[k]+'_amplitude'].stderr
-            sig_err = result.params[gName[k]+'_sigma'].stderr
-            cen_err = result.params[gName[k]+'_center'].stderr            
-
-            tabErr = {gName[k]+'_amplitude':amp, gName[k]+'_center': ctr, gName[k]+'_sigma': sig,
-                      gName[k]+'_fwhm' : fwhm, gName[k]+'_height' : height,
-                      gName[k]+'_centreErr':cen_err, gName[k]+'_ampErr': amp_err, 
-                      gName[k]+'_sigmaErr': sig_err}
-
-            tabInfo.update(tabErr)
+    def updateFitArray(self,fitResArr,result,binIDName,counter):
 
         aic = result.aic
         bic = result.bic
@@ -516,176 +578,355 @@ class gplay:
         ndata = result.ndata
         nvarys = result.nvarys
         nfev = result.nfev
-
-        tabFit = {'aic':aic,'bic': bic, 'ndata': ndata, 
-                  'redchi': redchi, 'success': success,
-                 'ndata' : ndata, 'nvarys' : nvarys,
-                 'nfev': nfev}
-        
-        tabInfo.update(tabFit)
-
-        #write3GaussFitTable(tabInfo,outTable)
-
-
-    
-    def writeOutputTable(self,lineInfo,singleVorBinInfo,result):
-
-        outTableName = self.cfg_par['general']['runNameDir']+'gPlayOut.fits'
-
-        #f os.path.exists(outTableName):
-        #    self.updateOutputTable(lineInfo,singleVorBinInfo,tabFit,fitRes,tabErr)
-        #else:
-        hdr = fits.Header()
-        hdr['COMMENT'] = "Here are the outputs of gPlay"
-        hdr['COMMENT'] = "Ext 1 = binInfo Ext 2 = fit result Ext 3 = line parameters"
-        empty_primary = fits.PrimaryHDU(header=hdr)
-
-        #make extension 1 : vorBinInfo & fitResults
-        col1 = fits.Column(name='ID', format='I', array=singleVorBinInfo['ID'])
-        col2 = fits.Column(name='BIN_ID', format='I', array=singleVorBinInfo['BIN_ID'])
-        col3 = fits.Column(name='X', format='D', array=np.round(singleVorBinInfo['X'],1))
-        col4 = fits.Column(name='Y', format='D', array=np.round(singleVorBinInfo['Y'],1))
-        col5 = fits.Column(name='X-Pix', format='I', array=singleVorBinInfo['PixX'])
-        col6 = fits.Column(name='Y-Pix', format='I', array=singleVorBinInfo['PixX'])
-
-
-        cols1 = fits.ColDefs([col1, col2, col3, col4, col5, col6])
-        
-        t1 = fits.BinTableHDU.from_columns(cols1)                
-        
-        hdul = fits.HDUList([empty_primary,t1])        
-        
-
-        aic = result.aic
-        bic = result.bic
-        redchi = result.redchi
         success = result.success
-        ndata = result.ndata
-        nvarys = result.nvarys
-        nfev = result.nfev
-        success = result.success
+  
+        fitResArr['BIN_ID'][counter] = binIDName
+        fitResArr['fitSuccess'][counter] = success
+        fitResArr['redChi'][counter] = redchi
+        fitResArr['aic'][counter] = aic
+        fitResArr['nData'][counter] = bic
+        fitResArr['nVariables'][counter] = nvarys
+        fitResArr['nFev'][counter] = nfev
+        fitResArr['nData'][counter] = ndata
         
-        tabFit = {'aic':aic,'bic': bic, 'ndata': ndata,
-          'redchi': redchi, 'success': success,
-          'ndata' : ndata, 'nvarys' : nvarys,
-          'nfev': nfev}
+        return fitResArr
 
-        modNameList = self.cfg_par['gFit']['modName']
-        col7 = fits.Column(name='modName', format='10A', array=modNameList)
-        col77 = fits.Column(name='BIN_ID', format='I', array=singleVorBinInfo['BIN_ID'])
-        col8 = fits.Column(name='fitSuccess', dtype='L', array=tabFit['success'])
-        col9 = fits.Column(name='redChi', format='D', array=tabFit['redchi'])
-        col10 = fits.Column(name='aic', format='D', array=tabFit['aic'])
-        col11 = fits.Column(name='bic', format='D', array=tabFit['bic'])
-        col12 = fits.Column(name='nData', dformat='I', array=tabFit['ndata'])
-        col13 = fits.Column(name='nVariables', format='I', array=tabFit['nvarys'])
-        col14 = fits.Column(name='nFev', dformat='I', array=tabFit['nfev'])
-
-        cols2 = fits.ColDefs([col7, col77, col8, col9, col10,
-            col11, col12, col13])
-
-        t2 = fits.BinTableHDU.from_columns(cols2)
-        hdul.append(t2)  
-
+    def updateLineArray(self,lineArr,result,lineInfo,binIDName,counter):
+        
         fitRes = result.params.valuesdict()
 
 
-        for i in xrange(0,len(lineInfo['ID'])):
+        modName = self.cfg_par['gFit']['modName']
 
-            modName = self.cfg_par['gFit']['modName']
+        for ii in xrange(0,len(lineInfo['ID'])):
 
-            amp_err = result.params[modName+'ln'+str(i)+'_amplitude'].stderr
-            sig_err = result.params[modName+'ln'+str(i)+'_sigma'].stderr
-            cen_err = result.params[modName+'ln'+str(i)+'_center'].stderr            
-
-            tabErr = {modName+'_amplitude':amp, modName+'_center': ctr, modName+'_sigma': sig,
-                  modName+'_fwhm' : fwhm, modName+'_height' : height,
-                  modName+'_centreErr':cen_err, modName+'_ampErr': amp_err, 
-                  modName+'_sigmaErr': sig_err}
-
-
-            cL1 = fits.Column(name='Name', format='10A', array=lineInfo['Name'][i])
-            cL2 = fits.Column(name='Wave', format='D', array=lineInfo['Wave'][i])
-            cL3 = fits.Column(name='g1_Amp', format='D', array=fitRes['g1'+'ln'+str(i)+'_amplitude'])
-            cL4 = fits.Column(name='g1_Amp_Err', format='D', array=tabErr['g1_ampErr'])
-            cL5 = fits.Column(name='g1_Height', format='D', array=fitRes['g1'+'ln'+str(i)+'_height'])
-
-
-            g1Ctr = self.lambdaVRad(np.exp(fitRes['g1'+'ln'+str(i)+'_centre']),lineInfo['Wave'][i])
-            g1CtrErr = self.lambdaVRad(np.exp(tabErr['g1_centreErr']),lineInfo['Wave'][i])
-            g1Sigma = self.lambdaVRad(np.exp(fitRes['g1'+'ln'+str(i)+'_sigma']),lineInfo['Wave'][i])
-            g1SigmaErr = self.lambdaVRad(np.exp(tabErr['g1'+'ln'+str(i)+'_sigmaErr']),lineInfo['Wave'][i])
-            g1FWHM = self.lambdaVRad(np.exp(fitRes['g1'+'ln'+str(i)+'_fwhm']),lineInfo['Wave'][i])
+            lineName = str(lineInfo['Name'][ii])
+            if '[' in lineName:
+                lineName = lineName.replace("[", "")
+                lineName = lineName.replace("]", "")
             
-            cL6 = fits.Column(name='g1_Centre', format='D', array=g1Ctr, unit='km/s')
-            cL7 = fits.Column(name='g1_Centre_Err', format='D', array=g1CtrErr, unit='km/s')
-            cL8 = fits.Column(name='g1_Sigma', format='D', array=g1Sigma, unit='km/s')
-            cL9 = fits.Column(name='g1_Sigma_Err', format='D', array=g1Sigma, unit='km/s')
-            cL10 = fits.Column(name='g1_Sigma_Err', format='D', array=g1Sigma, unit='km/s')
+            lineName = lineName+str(int(lineInfo['Wave'][ii]))
 
-            colsG1 = fits.ColDefs([cL1, cL2, cL3, cL4,
-                    cL5, cL6, cL7,cL8,cL9,cL10])           
+            amp = fitRes['g1ln'+str(ii)+'_amplitude']
+            ctr = fitRes['g1ln'+str(ii)+'_center']
+            sig = fitRes['g1ln'+str(ii)+'_sigma']
+            fwhm = fitRes['g1ln'+str(ii)+'_fwhm']
+            height = fitRes['g1ln'+str(ii)+'_height']
+
+            g1Ctr = self.lambdaVRad(np.exp(ctr),lineInfo['Wave'][ii])
+            g1Sigma = self.lambdaVRad(np.exp(sig),lineInfo['Wave'][ii])
+            g1FWHM = self.lambdaVRad(np.exp(fwhm),lineInfo['Wave'][ii])
+
+            #amp_err = result.params[modName+'ln'+str(i)+'_amplitude'].stderr
+            #sig_err = result.params[modName+'ln'+str(i)+'_sigma'].stderr
+            #g1SigmaErr = self.lambdaVRad(np.exp(sig_err),lineInfo['Wave'][i])
+            #cen_err = result.params[modName+'ln'+str(i)+'_center'].stderr  
+            #g1CtrErr = self.lambdaVRad(np.exp(cen_err),lineInfo['Wave'][i])
+            lineArr[lineName][counter] = int(lineInfo['Wave'][ii])     
+            lineArr['g1_Amp_'+lineName][counter] = amp
+            lineArr['g1_Height_'+lineName][counter] = height
+            lineArr['g1_Centre_'+lineName][counter] = g1Ctr
+            lineArr['g1_Sigma_'+lineName][counter] = g1Sigma
+            lineArr['g1_FWHM_'+lineName][counter] = g1FWHM
+
+            if modName != 'g1':
+
+                amp = fitRes['g2ln'+str(i)+'_amplitude']
+                ctr = fitRes['g2ln'+str(i)+'_center']
+                sig = fitRes['g2ln'+str(i)+'_sigma']
+                fwhm = fitRes['g2ln'+str(i)+'_fwhm']
+                height = fitRes['g2ln'+str(i)+'_height']
+
+                g2Ctr = self.lambdaVRad(np.exp(ctr),lineInfo['Wave'][ii])
+                g2Sigma = self.lambdaVRad(np.exp(sig),lineInfo['Wave'][ii])
+                g2FWHM = self.lambdaVRad(np.exp(fwhm),lineInfo['Wave'][ii])
+
+                #amp_err = result.params[modName+'ln'+str(i)+'_amplitude'].stderr
+                #sig_err = result.params[modName+'ln'+str(i)+'_sigma'].stderr
+                #g1SigmaErr = self.lambdaVRad(np.exp(sig_err),lineInfo['Wave'][i])
+                #cen_err = result.params[modName+'ln'+str(i)+'_center'].stderr  
+                #g1CtrErr = self.lambdaVRad(np.exp(cen_err),lineInfo['Wave'][i])
+          
+                lineArr['g2_Amp_'+lineName][counter] = amp
+                lineArr['g2_Height_'+lineName][counter] = height
+                lineArr['g2_Centre_'+lineName][counter] = g1Ctr
+                lineArr['g2_Sigma_'+lineName][counter] = g1Sigma
+                lineArr['g2_FWHM_'+lineName][counter] = g1FWHM
+
+                if modName == 'g3':
+
+                    amp = fitRes['g3ln'+str(i)+'_amplitude']
+                    ctr = fitRes['g3ln'+str(i)+'_center']
+                    sig = fitRes['g3ln'+str(i)+'_sigma']
+                    fwhm = fitRes['g3ln'+str(i)+'_fwhm']
+                    height = fitRes['g3ln'+str(i)+'_height']
+
+                    g3Ctr = self.lambdaVRad(np.exp(ctr),lineInfo['Wave'][ii])
+                    g3Sigma = self.lambdaVRad(np.exp(sig),lineInfo['Wave'][ii])
+                    g3FWHM = self.lambdaVRad(np.exp(fwhm),lineInfo['Wave'][ii])
+
+                    #amp_err = result.params[modName+'ln'+str(i)+'_amplitude'].stderr
+                    #sig_err = result.params[modName+'ln'+str(i)+'_sigma'].stderr
+                    #g1SigmaErr = self.lambdaVRad(np.exp(sig_err),lineInfo['Wave'][i])
+                    #cen_err = result.params[modName+'ln'+str(i)+'_center'].stderr  
+                    #g1CtrErr = self.lambdaVRad(np.exp(cen_err),lineInfo['Wave'][i])
+              
+                    lineArr['g3_Amp_'+lineName][counter] = amp
+                    lineArr['g3_Height_'+lineName][counter] = height
+                    lineArr['g3_Centre_'+lineName][counter] = g3Ctr
+                    lineArr['g3_Sigma_'+lineName][counter] = g3Sigma
+                    lineArr['g3_FWHM_'+lineName][counter] = g3FWHM
             
-            if modName == 'g1':
 
-                t3 = fits.BinTableHDU.from_columns(cols2)
-                hdul.append(t3)  
+        return lineArr
+
+    def saveOutputTable(self, binArr, fitResArr, lineArr):
+        outTableName = self.cfg_par['general']['runNameDir']+'gPlayOut1.fits'
+        modNameList = self.cfg_par['gFit']['modName']
+
+        if os.path.exists(self.cfg_par['general']['outTableName']):
+            hdul = fits.open(self.cfg_par['general']['outTableName'])
+            t2 = fits.BinTableHDU.from_columns(fitResArr,name='FitRes_'+modNameList)
+            hdul.append(t2)  
+            t3 = fits.BinTableHDU.from_columns(lineArr,name='LineRes_'+modNameList)
+            hdul.append(t3)  
+        else:    
+            hdr = fits.Header()
+            hdr['COMMENT'] = "Here are the outputs of gPlay"
+            hdr['COMMENT'] = "Ext 1 = binInfo Ext 2 = fit result Ext 3 = line parameters"
             
-            else: 
-                
-                cL11 = fits.Column(name='g2_Amp', format='D', array=fitRes['g2'+'ln'+str(i)+'_amplitude'])
-                cL12 = fits.Column(name='g2_Amp_Err', format='D', array=tabErr['g2'+'ln'+str(i)+'_ampErr'])
-                cL13 = fits.Column(name='g2_Height', format='D', array=fitRes['g2'+'ln'+str(i)+'_height'])
+            empty_primary = fits.PrimaryHDU(header=hdr)
+           
+            t1 = fits.BinTableHDU.from_columns(binArr,name='BinInfo')  
+            hdul = fits.HDUList([empty_primary,t1])        
 
-                g2Ctr = self.lambdaVRad(np.exp(fitRes['g2'+'ln'+str(i)+'_centre']),lineInfo['Wave'][i])
-                g2CtrErr = self.lambdaVRad(np.exp(tabErr['g2'+'ln'+str(i)+'_centreErr']),lineInfo['Wave'][i])
-                g2Sigma = self.lambdaVRad(np.exp(fitRes['g2'+'ln'+str(i)+'_sigma']),lineInfo['Wave'][i])
-                g2SigmaErr = self.lambdaVRad(np.exp(tabErr['g2'+'ln'+str(i)+'_sigmaErr']),lineInfo['Wave'][i])
-                g2FWHM = self.lambdaVRad(np.exp(fitRes['g2'+'ln'+str(i)+'_fwhm']),lineInfo['Wave'][i])
-            
-                cL14 = fits.Column(name='g2_Centre', format='D', array=g2Ctr, unit='km/s')
-                cL15 = fits.Column(name='g2_Centre_Err', format='D', array=g2CtrErr, unit='km/s')
-                cL16 = fits.Column(name='g2_Sigma', format='D', array=g2Sigma, unit='km/s')
-                cL17 = fits.Column(name='g2_Sigma_Err', format='D', array=g2Sigma, unit='km/s')
-                cL18 = fits.Column(name='g2_FWHM', format='D', array=g2FWHM, unit='km/s')
+            t2 = fits.BinTableHDU.from_columns(fitResArr,name='FitRes_'+modNameList)
+            hdul.append(t2)  
 
-                colsG2 = fits.ColDefs([cL11,cL12,cL13,cL14,cL15,
-                        cL16,cL17,cL18])
+            t3 = fits.BinTableHDU.from_columns(lineArr,name='LineRes_'+modNameList)
+            hdul.append(t3)  
 
-                if self.cfg_par['gFit']['modName'] == 'g2':
-                    t3 = fits.BinTableHDU.from_columns([colsG1,colsG2])
-                    hdul.append(t3)  
-                
-                if self.cfg_par['gFit']['modName'] == 'g3':
+        hdul.writeto(outTableName,overwrite=True)
 
-                    cL19 = fits.Column(name='g3_Amp', format='D', array=fitRes['g2'+'ln'+str(i)+'_amplitude'])
-                    cL20 = fits.Column(name='g3_Amp_Err', format='D', array=tabErr['g2_ampErr'])
-                    cL21 = fits.Column(name='g3_Height', format='D', array=fitRes['g2'+'ln'+str(i)+'_height'])
+        return
 
-                    g3Ctr = self.lambdaVRad(np.exp(fitRes['g3'+'ln'+str(i)+'_centre']),lineInfo['Wave'][i])
-                    g3CtrErr = self.lambdaVRad(np.exp(tabErr['g3_centreErr']),lineInfo['Wave'][i])
-                    g3Sigma = self.lambdaVRad(np.exp(fitRes['g3'+'ln'+str(i)+'_sigma']),lineInfo['Wave'][i])
-                    g3SigmaErr = self.lambdaVRad(np.exp(tabErr['g3_sigmaErr']),lineInfo['Wave'][i])
-                    g3FWHM = self.lambdaVRad(np.exp(fitRes['g3'+'ln'+str(i)+'_fwhm']),lineInfo['Wave'][i])
-                
-                    cL22 = fits.Column(name='g3_Centre', format='D', array=g3Ctr, unit='km/s')
-                    cL23 = fits.Column(name='g3_Centre_Err', format='D', array=g3CtrErr, unit='km/s')
-                    cL24 = fits.Column(name='g3_Sigma', format='D', array=g3Sigma, unit='km/s')
-                    cL25 = fits.Column(name='g3_Sigma_Err', format='D', array=g3Sigma, unit='km/s')
-                    cL26 = fits.Column(name='g3_FWHM', format='D', array=g3FWHM, unit='km/s')
+#     def makeOutputTable(self,lineInfo):
 
-                    colsG3 = fits.ColDefs([cL19,cL20,cL21,cL22, cL23, cL24, cL25])
-                    
-                    t3 = fits.BinTableHDU.from_columns([colsG1,colsG2,colsG3])
-                    hdul.append(t3)  
+#         hdr = fits.Header()
+#         hdr['COMMENT'] = "Here are the outputs of gPlay"
+#         hdr['COMMENT'] = "Ext 1 = binInfo Ext 2 = fit result Ext 3 = line parameters"
+#         empty_primary = fits.PrimaryHDU(header=hdr)
+
+#         col1 = fits.Column(name='ID', format='I')
+
+#         col2 = fits.Column(name='BIN_ID', format='I', )
+
+#         col3 = fits.Column(name='X', format='D')
+
+#         col4 = fits.Column(name='Y', format='D')
+#         col5 = fits.Column(name='X-Pix', format='I')
+#         col6 = fits.Column(name='Y-Pix', format='I')
+        
+
+#         cols1 = fits.ColDefs([col1, col2, col3, col4, col5, col6])
+
+#         t1 = fits.BinTableHDU.from_columns(cols1,name='BinInfo')                
     
-        hdul.writeto(outTableName, overwrite=False)
+#         hdul = fits.HDUList([empty_primary,t1])        
+        
 
-        return 0
+#         modNameList = self.cfg_par['gFit']['modName']
+# #        col7 = fits.Column(name='modName', format='10A', array=[modNameList])
 
-    #def writeOutputTable(self,lineInfo,singleVorBinInfo,tabFit,fitRes,tabErr):
+# #        col77 = fits.Column(name='BIN_ID', format='I', array=[singleVorBinInfo['BIN_ID']])
+#         col77 = fits.Column(name='BIN_ID', format='I')
+
+# #        col8 = fits.Column(name='fitSuccess', format='L', array=[tabFit['success']])
+#         col8 = fits.Column(name='fitSuccess', format='L')
+
+# #        col9 = fits.Column(name='redChi', format='D', array=[tabFit['redchi']])
+#         col9 = fits.Column(name='redChi', format='D')
+
+# #        col10 = fits.Column(name='aic', format='D', array=[tabFit['aic']])
+#         col10 = fits.Column(name='aic', format='D')
+
+# #        col11 = fits.Column(name='bic', format='D', array=[tabFit['bic']])
+#         col11 = fits.Column(name='bic', format='D')
+
+# #        col12 = fits.Column(name='nData', format='I', array=[tabFit['ndata']])
+#         col12 = fits.Column(name='nData', format='I')
+
+# #        col13 = fits.Column(name='nVariables', format='I', array=[tabFit['nvarys']])
+#         col13 = fits.Column(name='nVariables', format='I')
+
+# #        col14 = fits.Column(name='nFev', format='I', array=[tabFit['nfev']])
+#         col14 = fits.Column(name='nFev', format='I')
+
+#         cols2 = fits.ColDefs([col77, col8, col9, col10,
+#             col11, col12, col13])
+
+#         t2 = fits.BinTableHDU.from_columns(cols2,name='FitRes_'+modNameList)
+#         hdul.append(t2)  
+
+#         #fitRes = result.params.valuesdict()
+        
+#         hduline = fits.HDUList([empty_primary])        
+
+#         for i in xrange(0,len(lineInfo['ID'])):
+
+#             modName = self.cfg_par['gFit']['modName']
+#             lineName = str(lineInfo['Name'][i])
+#             if '[' in lineName:
+#                 lineName = lineName.replace("[", "")
+#                 lineName = lineName.replace("]", "")
+#             lineName = lineName+str(int(lineInfo['Wave'][i]))
+
+# #            amp = fitRes['g1ln'+str(i)+'_amplitude']
+# #            ctr = fitRes['g1ln'+str(i)+'_center']
+# #            sig = fitRes['g1ln'+str(i)+'_sigma']
+# #            fwhm = fitRes['g1ln'+str(i)+'_fwhm']
+# #            height = fitRes['g1ln'+str(i)+'_height']
+
+#             #amp_err = result.params[modName+'ln'+str(i)+'_amplitude'].stderr
+#             #sig_err = result.params[modName+'ln'+str(i)+'_sigma'].stderr
+#             #cen_err = result.params[modName+'ln'+str(i)+'_center'].stderr            
+
+# #            cL2 = fits.Column(name=lineName, format='I', array=[int(lineInfo['Wave'][i])])
+#             cL2 = fits.Column(name=lineName, format='I')
+
+#             #cL3 = fits.Column(name='g1_Amp_'+lineName, format='D', array=[amp])
+#             cL3 = fits.Column(name='g1_Amp_'+lineName, format='D')
+
+# #            cL4 = fits.Column(name='g1_Amp_Err_'+lineInfo['Name'][i], format='D', array=[amp_err])
+# #            cL5 = fits.Column(name='g1_Height_'+lineName, format='D', array=[height])
+#             cL5 = fits.Column(name='g1_Height_'+lineName, format='D')
 
 
+# #            g1Ctr = self.lambdaVRad(np.exp(ctr),lineInfo['Wave'][i])
+#             #g1CtrErr = self.lambdaVRad(np.exp(cen_err),lineInfo['Wave'][i])
+# #            g1Sigma = self.lambdaVRad(np.exp(sig),lineInfo['Wave'][i])
+#             #g1SigmaErr = self.lambdaVRad(np.exp(sig_err),lineInfo['Wave'][i])
+# #            g1FWHM = self.lambdaVRad(np.exp(fwhm),lineInfo['Wave'][i])
+            
+# #            cL6 = fits.Column(name='g1_Centre_'+lineName, format='D', array=[g1Ctr], unit='km/s')
+#             cL6 = fits.Column(name='g1_Centre_'+lineName, format='D', unit='km/s')
+ 
+#             #cL7 = fits.Column(name='g1_Centre_Err_'+lineInfo['Name'][i], format='D', array=[g1CtrErr], unit='km/s')
+# #            cL8 = fits.Column(name='g1_Sigma_'+lineName, format='D', array=[g1Sigma], unit='km/s')
+
+#             cL8 = fits.Column(name='g1_Sigma_'+lineName, format='D', unit='km/s')
+#             #cL9 = fits.Column(name='g1_Sigma_Err_'+lineInfo['Name'][i], format='D', array=[g1Sigma], unit='km/s')
+# #            cL10 = fits.Column(name='g1_FWHM_'+lineName, format='D', array=[g1FWHM], unit='km/s')
+#             cL10 = fits.Column(name='g1_FWHM_'+lineName, format='D', unit='km/s')
+            
+#             if modName == 'g1':
+#                 colsG1 = fits.ColDefs([cL2, cL3,
+#                     cL5, cL6,cL8,cL10])
+#                 if i ==0:
+#                     t = fits.BinTableHDU.from_columns(colsG1,name='LineRes_'+modNameList)
+#                 else:
+#                     t1Data = t.data
+#                     t1Cols = t1Data.columns
+#                     t = fits.BinTableHDU.from_columns(t1Cols+colsG1,name='LineRes_'+modNameList)
+            
+#             else: 
+                
+#                 #amp = fitRes['g2ln'+str(i)+'_amplitude']
+#                 #ctr = fitRes['g2ln'+str(i)+'_center']
+#                 #sig = fitRes['g2ln'+str(i)+'_sigma']
+#                 #fwhm = fitRes['g2ln'+str(i)+'_fwhm']
+#                 #height = fitRes['g2ln'+str(i)+'_height']
+
+#                 #amp_err = result.params['g2ln'+str(i)+'_amplitude'].stderr
+#                 #sig_err = result.params['g2ln'+str(i)+'_sigma'].stderr
+#                 #cen_err = result.params['g2ln'+str(i)+'_center'].stderr            
+
+
+# #                cL11 = fits.Column(name='g2_Amp_'+lineName, format='D', array=[amp])
+#                 cL11 = fits.Column(name='g2_Amp_'+lineName, format='D')
+
+#                 #cL12 = fits.Column(name='g2_Amp_Err_'+lineInfo['Name'][i], format='D', array=[amp_err])
+# #                cL13 = fits.Column(name='g2_Height_'+lineName, format='D', array=[height])
+#                 cL13 = fits.Column(name='g2_Height_'+lineName, format='D')
+
+#                 #g2Ctr = self.lambdaVRad(np.exp(ctr),lineInfo['Wave'][i])
+#                 #g2CtrErr = self.lambdaVRad(np.exp(cen_err),lineInfo['Wave'][i])
+#                 #g2Sigma = self.lambdaVRad(np.exp(sig),lineInfo['Wave'][i])
+#                 #g2SigmaErr = self.lambdaVRad(np.exp(sig_err),lineInfo['Wave'][i])
+#                 #g2FWHM = self.lambdaVRad(np.exp(fwhm),lineInfo['Wave'][i])
+            
+# #                cL14 = fits.Column(name='g2_Centre_'+lineName, format='D', array=[g2Ctr], unit='km/s')
+#                 cL14 = fits.Column(name='g2_Centre_'+lineName, format='D', unit='km/s')
+
+#                 #cL15 = fits.Column(name='g2_Centre_Err_'+lineInfo['Name'][i], format='D', array=[g2CtrErr], unit='km/s')
+# #                cL16 = fits.Column(name='g2_Sigma_'+lineName, format='D', array=[g2Sigma], unit='km/s')
+#                 cL16 = fits.Column(name='g2_Sigma_'+lineName, format='D', unit='km/s')
+ 
+#                 #cL17 = fits.Column(name='g2_Sigma_Err_'+lineInfo['Name'][i], format='D', array=[g2Sigma], unit='km/s')
+# #                cL18 = fits.Column(name='g2_FWHM_'+lineName, format='D', array=[g2FWHM], unit='km/s')
+#                 cL18 = fits.Column(name='g2_FWHM_'+lineName, format='D', unit='km/s')
+
+
+#                 if modName == 'g2':
+#                     colsG2 = fits.ColDefs([cL2, cL3, cL5, cL6,cL8,cL10,
+#                         cL11,cL13,cL14,cL16,cL18])
+#                     if i ==0:
+#                         t = fits.BinTableHDU.from_columns(colsG2,name='LineRes_'+modNameList)
+#                     else:
+#                         t2Data = t.data
+#                         t2Cols = t2Data.columns
+#                         t = fits.BinTableHDU.from_columns(t2Cols+colsG2,name='LineRes_'+modNameList)
+                
+#                 if self.cfg_par['gFit']['modName'] == 'g3':
+
+#                     #amp = fitRes['g2ln'+str(i)+'_amplitude']
+#                     #ctr = fitRes['g2ln'+str(i)+'_center']
+#                     #sig = fitRes['g2ln'+str(i)+'_sigma']
+#                     #fwhm = fitRes['g2ln'+str(i)+'_fwhm']
+#                     #height = fitRes['g2ln'+str(i)+'_height']
+
+#                     #amp_err = result.params['g2ln'+str(i)+'_amplitude'].stderr
+#                     #sig_err = result.params['g2ln'+str(i)+'_sigma'].stderr
+#                     #cen_err = result.params['g2ln'+str(i)+'_center'].stderr       
+
+# #                    cL19 = fits.Column(name='g3_Amp_'+lineName, format='D', array=[amp])
+#                     cL19 = fits.Column(name='g3_Amp_'+lineName, format='D')
+
+#                     #cL20 = fits.Column(name='g3_Amp_Err_'+lineInfo['Name'][i], format='D', array=[amp_err])
+# #                    cL21 = fits.Column(name='g3_Height_'+lineName, format='D', array=[height])
+#                     cL21 = fits.Column(name='g3_Height_'+lineName, format='D')
+
+# #                    g3Ctr = self.lambdaVRad(np.exp(ctr),lineInfo['Wave'][i])
+#                     #g3CtrErr = self.lambdaVRad(np.exp(cen_err),lineInfo['Wave'][i])
+# #                    g3Sigma = self.lambdaVRad(np.exp(sig),lineInfo['Wave'][i])
+#                     #g3SigmaErr = self.lambdaVRad(np.exp(sig_err),lineInfo['Wave'][i])
+# #                    g3FWHM = self.lambdaVRad(np.exp(fwhm),lineInfo['Wave'][i])
+                
+# #                    cL22 = fits.Column(name='g3_Centre_'+lineName, format='D', array=[g3Ctr], unit='km/s')
+#                     cL22 = fits.Column(name='g3_Centre_'+lineName, format='D', unit='km/s')
+
+#                     #cL23 = fits.Column(name='g3_Centre_Err_'+lineInfo['Name'][i], format='D', array=[g3CtrErr], unit='km/s')
+# #                    cL24 = fits.Column(name='g3_Sigma_'+lineName, format='D', array=[g3Sigma], unit='km/s')
+#                     cL24 = fits.Column(name='g3_Sigma_'+lineName, format='D', unit='km/s')
+
+#                     #cL25 = fits.Column(name='g3_Sigma_Err_'+lineInfo['Name'][i], format='D', array=[g3Sigma], unit='km/s')
+# #                    cL26 = fits.Column(name='g3_FWHM_'+lineName, format='D', array=[g3FWHM], unit='km/s')
+#                     cL26 = fits.Column(name='g3_FWHM_'+lineName, format='D', unit='km/s')
+
+#                     colsG3 = fits.ColDefs([cL2,cL3, cL5, cL6,cL8,cL10,
+#                         cL11,cL13,cL14,cL16,cL18,cL19,cL21,cL22,cL24, cL26])
+#                     if i ==0:
+#                         t = fits.BinTableHDU.from_columns(colsG3,name='LineRes_'+modNameList)
+#                     else:
+#                         t3Data = t[0].data
+#                         t3Cols = t3Data.columns
+#                         t = fits.BinTableHDU.from_columns(t3Cols+colsG3,name='LineRes_'+modNameList)
+
+#         hdul.append(t)  
+#         hdul.info()
+#         hdul.writeto(self.cfg_par['general']['outTableName'], overwrite=True)
+        
+#         return hdul
 
 #----------------------#
 # rc param initialize
@@ -720,14 +961,14 @@ class gplay:
 
     def loadRcParamsZoom(self):
     
-        params = {'figure.figsize'      : '10,10',
+        params = {
           'font.family'         :' serif',
           'font.serif'          :'times',
           'font.style'          : 'normal',
           'font.weight'         : 'book',
-          'font.size'           : 13.5,
+          'font.size'           : 12,
           'axes.linewidth'      : 2,
-          'lines.linewidth'     : 1.8,
+          'lines.linewidth'     : 1.5,
           'xtick.labelsize'     : 9,
           'ytick.labelsize'     : 9, 
           'xtick.direction'     :'in',
@@ -747,7 +988,7 @@ class gplay:
         
         return params
 
-    def plotSpecFit(self,vel,y,result,noise,xx,yy,lineInfo):
+    def plotSpecFit(self,vel,y,result,noise,xx,yy,lineInfo,singleVorBinInfo):
         
         velPlot = np.exp(vel)
         yBFit = result.best_fit
@@ -783,7 +1024,7 @@ class gplay:
 
         #ax.set_xticks([])
 
-        ax1.set_xlabel(r'Wavelength [\AA]')
+        ax1.set_xlabel(r'Wavelength [$\AA$]')
         ax1.set_ylabel(r'Flux [-]')
 
 
@@ -791,11 +1032,11 @@ class gplay:
         x_min = np.min(velPlot)
         x_max = np.max(velPlot)
         if self.cfg_par['gPlot']['fixed_scale']:
-            y1_min = np.min(y)*1.5
-            y1_max = np.max(y)*1.5
+            y1_min = np.min(y)*1.2
+            y1_max = np.max(y)*1.2
         else:
-            y1_min = np.nanmin(y)*1.3
-            y1_max = np.nanmax(y)*1.3
+            y1_min = np.nanmin(y)*1.1
+            y1_max = np.nanmax(y)*1.1
 
         # Set axis limits
         ax1.set_xlim(x_min, x_max)
@@ -808,6 +1049,20 @@ class gplay:
         ax1.step(velPlot, y, where='mid', color='black', linestyle='-')
         ax1.plot(velPlot, yBFit, 'r-', label='best fit')
         #ax1.step(vel, yInFit, 'b-', label='init fit')
+        aicStr = str(int(result.aic))
+        bicStr = str(int(result.bic))
+        redchiStr = str(int(result.redchi))
+        successStr = str(result.success)       
+        xText = self.cfg_par['gFit']['lambdaMin']+50
+
+
+        ax1.text(xText, y1_max*0.90, r'BIN ID:\t'+str(singleVorBinInfo['BIN_ID'][0]), {'color': 'k', 'fontsize': 20})
+        ax1.text(xText, y1_max*0.94, r'X,Y:\t'+str(xx)+','+str(yy), {'color': 'k', 'fontsize': 20})
+
+        #ax1.text(xText, x_max*0.85, r'Success:\t'+successStr, {'color': 'b'})
+        ax1.text(xText, y1_max*0.88, r'$\tilde{\chi}^2$:\t'+redchiStr, {'color': 'k', 'fontsize': 20})
+        ax1.text(xText, y1_max*0.82, r'aic:\t'+aicStr, {'color': 'k', 'fontsize': 20})
+        ax1.text(xText, y1_max*0.76, r'bic:\t'+bicStr, {'color': 'k', 'fontsize': 20})
 
         #ax1.fill_between(vel, yBFit-dely, yBFit+dely, color="#ABABAB",
         #        label='3-$\sigma$ uncertainty band')
@@ -830,11 +1085,11 @@ class gplay:
         x_min = np.min(velPlot)
         x_max = np.max(velPlot)
         if self.cfg_par['gPlot']['Res-fixed_scale']:
-            y1_min = -200
-            y1_max = 200
+            y1_min = np.nanmin([-200.,np.nanmin(-noise)*1.1,np.nanmin(-yRes)*1.1])
+            y1_max = np.nanmax([+200.,np.nanmax(+noise)*1.1,np.nanmax(+yRes)*1.1])
         else:
-            y1_min = np.nanmin(yRes)*1.3
-            y1_max = np.nanmax(yRes)*1.3
+            y1_min = np.nanmin(yRes)*1.1
+            y1_max = np.nanmax(yRes)*1.1  
 
         # Set axis limits
         ax2.set_xlim(x_min, x_max)
@@ -857,7 +1112,7 @@ class gplay:
            
         return 0
 
-    def plotLineZoom(self,vel,y,result,noise,i,j,lineInfo):
+    def plotLineZoom(self,vel,y,result,noise,i,j,lineInfo,singleVorBinInfo):
 
         velExp = np.exp(vel)
         yBFit = result.best_fit
@@ -869,17 +1124,30 @@ class gplay:
         if not os.path.exists(outPlotDir):
             os.mkdir(outPlotDir)
         
-        outPlot = outPlotDir+str(i)+'_'+str(j)+'_SNR-lines.png'       
+        outPlot = outPlotDir+str(singleVorBinInfo['BIN_ID'][0])+'_'+self.cfg_par['gFit']['modName']+'.png'       
 
         params = self.loadRcParamsZoom()
         plt.rcParams.update(params)
         # add one row for the plot with full channel width
         n_plots = len(lineInfo['Wave'])
         n_rows = int(np.ceil(n_plots/3.))
-        fig, ax = plt.subplots(squeeze=False,
-            ncols=3, nrows=n_rows, figsize=(8.25, 11.67))
+        #fig, ax = plt.subplots(squeeze=False,
+        #    ncols=3, nrows=n_rows, figsize=(8.25, 11.67))
+
+
+        fig = plt.figure(figsize=(8.25, 11.67), constrained_layout=True)
         fig.subplots_adjust(hspace=0.)
 
+        gs_top = plt.GridSpec(nrows=n_rows+1, ncols=3,  figure=fig, top=0.95)
+        gs_base = plt.GridSpec(nrows=n_rows+1, ncols=3,  figure=fig, hspace=0,top=0.91)
+
+
+        #gs = fig.add_gridspec(nrows=n_rows+1, ncols=3, left=0.05, figsize=(8.25, 11.67))
+        #gs = gridspec.GridSpec(nrows=n_rows+1, ncols=3,  figure=fig)
+        
+        wave_ax = self.addFullSubplot(fig,gs_top,vel,y,result,noise,i,j,lineInfo,singleVorBinInfo)
+        
+ 
         #for plot_count in range(n_plots):
         k=0
         for i in xrange(0,len(lineInfo['Wave'])):
@@ -915,28 +1183,39 @@ class gplay:
 
             minLoc = np.floor(np.min(x_data_plot)/np.float(self.cfg_par['gPlot']['deltaVlabel']))
             maxLoc = np.ceil(np.max(x_data_plot)/np.float(self.cfg_par['gPlot']['deltaVlabel']))
+            
             xTicks = np.arange(minLoc*self.cfg_par['gPlot']['deltaVlabel'],(maxLoc+1)*self.cfg_par['gPlot']['deltaVlabel'],
                 self.cfg_par['gPlot']['deltaVlabel'])
+            
+            if np.abs(xTicks[0]) > xTicks[-1]:
+                    xTicks=np.delete(xTicks,0)
+            elif np.abs(xTicks[0]) < xTicks[-1]:
+                    xTicks = np.delete(xTicks,-1)
+
+
             xTicksStr = [str(hh) for hh in xTicks]
+        
+            ax = fig.add_subplot(gs_base[j+1,k])
+            
 
-            ax[j][k].set_xticks(xTicks)
-            ax[j][k].set_xticklabels([])
+            ax.set_xticks(xTicks)
+            ax.set_xticklabels([])
 
-            ax[j][k].set_xlim(x_min, x_max)
-            ax[j][k].set_ylim(y1_min, y1_max)
-            ax[j][k].xaxis.labelpad = 6
-            ax[j][k].yaxis.labelpad = 10
-            ax[j][k].minorticks_on()
-            ax[j][k].tick_params(axis='both', bottom='on', top='on',
+            ax.set_xlim(x_min, x_max)
+            ax.set_ylim(y1_min, y1_max)
+            ax.xaxis.labelpad = 6
+            ax.yaxis.labelpad = 10
+            ax.minorticks_on()
+            ax.tick_params(axis='both', bottom='on', top='on',
                                    left='on', right='on', which='major', direction='in')
-            ax[j][k].tick_params(axis='both', bottom='on', top='on',
+            ax.tick_params(axis='both', bottom='on', top='on',
                                    left='on', right='on', which='minor', direction='in')
             if k==0:
-                ylabh = ax[j][k].set_ylabel(
+                ylabh = ax.set_ylabel(
                     r'Flux [-]')
                 ylabh.set_verticalalignment('center')
 
-            ax[j][k].tick_params(axis='both', which='major', pad=5)
+            ax.tick_params(axis='both', which='major', pad=5)
             #ax1.xaxis.set_minor_locator()
             #ax1.yaxis.set_minor_locator()      
             if lineInfo['Name'][i] == 'Hb':
@@ -946,8 +1225,10 @@ class gplay:
             else:
                 lineInfoName =lineInfo['Name'][i]
 
-            ax[j][k].step(x_data_plot, y_data_plot, where='mid', color='black', linestyle='-')
-            ax[j][k].plot(x_data_plot, y_BFit_plot, 'r-', label=lineInfoName+str(int(lineInfo['Wave'][i])))
+            ax.step(x_data_plot, y_data_plot, where='mid', color='black', linestyle='-')
+            ax.plot(x_data_plot, y_BFit_plot, 'r-', label=lineInfoName+str(int(lineInfo['Wave'][i])))
+            #ax2.fill_between(0, y_BFit_plot, y_sigma_plot,
+            #                 facecolor='grey', alpha=0.5,step='mid')
             #ax1.step(vel, yInFit, 'b-', label='init fit')
 
             #ax1.fill_between(vel, yBFit-dely, yBFit+dely, color="#ABABAB",
@@ -956,39 +1237,39 @@ class gplay:
                 comps = result.eval_components()
                 for ii in xrange(0,len(lineInfo['ID'])):
 
-                    ax[j][k].plot(x_data_plot, comps['g1ln'+str(ii)+'_'][idxMin:idxMax], 'g--')
+                    ax.plot(x_data_plot, comps['g1ln'+str(ii)+'_'][idxMin:idxMax], 'g--')
                 
                     if self.cfg_par['gFit']['modName'] =='g2':
-                        ax[j][k].plot(x_data_plot, comps['g2ln'+str(ii)+'_'][idxMin:idxMax], 'm--')    
+                        ax.plot(x_data_plot, comps['g2ln'+str(ii)+'_'][idxMin:idxMax], 'm--')    
                 
                     elif self.cfg_par['gFit']['modName'] !='g2':
-                        ax[j][k].plot(x_data_plot, comps['g2ln'+str(ii)+'_'][idxMin:idxMax], 'm--')    
-                        ax[j][k].plot(x_data_plot, comps['g3ln'+str(ii)+'_'][idxMin:idxMax], 'c--')    
+                        ax.plot(x_data_plot, comps['g2ln'+str(ii)+'_'][idxMin:idxMax], 'm--')    
+                        ax.plot(x_data_plot, comps['g3ln'+str(ii)+'_'][idxMin:idxMax], 'c--')    
 
 
-            ax[j][k].axvline(color='k', linestyle=':', zorder=0)                           
-            ax[j][k].legend(loc='best',handlelength=0.1, handletextpad=0.1,frameon=False)
-            ax[j][k].legend(handlelength=0.5)
+            ax.axvline(color='k', linestyle=':', zorder=0)                           
+            legend = ax.legend(loc='best',handlelength=0.0, handletextpad=0.0,frameon=False)
+            legend.get_frame().set_facecolor('none')
 
  
-            divider = make_axes_locatable(ax[j][k])
+            divider = make_axes_locatable(ax)
             ax2 = divider.append_axes("bottom", size='20%',pad=0)
             ax2.minorticks_on()
 
-            ax[j][k].figure.add_axes(ax2)
+            ax.figure.add_axes(ax2)
             # Calculate axis limits
-            x_min = np.min(x_data_plot)
-            x_max = np.max(x_data_plot)
+            x_min = np.nanmin(x_data_plot)
+            x_max = np.nanmax(x_data_plot)
             if self.cfg_par['gPlot']['Res-fixed_scale']:
-                y1_min = -200
-                y1_max = 200
+                y1_min = np.nanmin([-200.,np.nanmin(-y_sigma_plot)*1.5,np.nanmin(-y_Res_plot)*1.5])
+                y1_max = np.nanmax([+200.,np.nanmax(+y_sigma_plot)*1.5,np.nanmax(+y_Res_plot)*1.5])
             else:
-                y1_min = np.nanmin(y_Res_plot)*1.3
-                y1_max = np.nanmax(y_Res_plot)*1.3
+                y1_min = np.nanmin(y_Res_plot)*1.1
+                y1_max = np.nanmax(y_Res_plot)*1.1
 
             ax2.set_xticks(xTicks)
 
-            ax2.set_yticks([-150,0,150])
+            #ax2.set_yticks([-150,0,150])
             #ax2.set_yticklabels([])
 
             # Set axis limits
@@ -1003,27 +1284,152 @@ class gplay:
                              facecolor='grey', alpha=0.5,step='mid')
 
            # for the last plot add the x-axis label
-            if i == len(lineInfo['Wave'])-1:                
+            if i >= len(lineInfo['Wave'])-3:                
                 ax2.set_xticks(xTicks)
                 ax2.set_xlabel(
-                        r'Velocity\,[$\mathrm{km}\,\mathrm{s}^{-1}$]', labelpad=2)
+                        r'v$_\mathrm{radio}$\,[$\mathrm{km}\,\mathrm{s}^{-1}$]', labelpad=2)
             else:
                 ax2.set_xticklabels([])
 
 
             k+=1
         #delete unused subplots
-        i+=1
-        while not i % 3 ==0:   
-            fig.delaxes(ax[j][k])
+        #i+=1
+        #while not i % 3 ==0:   
+        #    fig.delaxes(ax)
 
-            ax[j-1][k].axes.get_xaxis().set_ticklabels(xTicksStr)
-            ax[j-1][k].axes.get_xaxis().set_ticklabels(xTicksStr)
-            k +=1
-            i +=1
+        #    gs[j-1][k].axes.get_xaxis().set_ticklabels(xTicksStr)
+        #    gs[j-1][k].axes.get_xaxis().set_ticklabels(xTicksStr)
+        #    k +=1
+        #    i +=1
 
 
         plt.savefig(outPlot,dpi=200,bbox_inches='tight',
                     format='png') # if pdf,dpi=300,transparent=True,bbox_inches='tight',overwrite=True)
         plt.show()
-        plt.close()                        
+        plt.close()  
+
+    def addFullSubplot(self,fig,gs,vel,y,result,noise,xx,yy,lineInfo,singleVorBinInfo):
+        
+        velPlot = np.exp(vel)
+        yBFit = result.best_fit
+        yRes = result.residual
+        yInFit = result.init_fit
+        key = 'general'
+        
+        #outPlotDir = self.cfg_par[key]['runNameDir']+'/'+self.cfg_par['gPlot']['outPlotDirName']
+        #if not os.path.exists(outPlotDir):
+        #    os.mkdir(outPlotDir)
+
+
+        #outPlot = outPlotDir+str(xx)+'_'+str(yy)+'_'+self.cfg_par['gFit']['modName']+'.png'       
+        
+
+        #dely = result.eval_uncertainty(sigma=3)
+            
+         # initialize figure
+        #params = self.loadRcParamsBig()
+        #plt.rcParams.update(params)
+        #fig = plt.figure(figsize =(10,8))
+        #fig.subplots_adjust(hspace=0.0)
+        #gs = gridspec.GridSpec(1, 1)
+        #plt.rc('xtick')
+
+        # Initialize subplots
+        ax1 = fig.add_subplot(gs[0,:])
+
+        divider = make_axes_locatable(ax1)
+        ax2 = divider.append_axes("bottom", size='15%', pad=0)
+        ax1.figure.add_axes(ax2)
+        
+
+        #ax.set_xticks([])
+
+        ax1.set_xlabel(r'Wavelength [$\AA$]',labelpad=15)
+        ax1.set_ylabel(r'Flux [-]')
+
+
+        # Calculate axis limits and aspect ratio
+        x_min = np.min(velPlot)
+        x_max = np.max(velPlot)
+        if self.cfg_par['gPlot']['fixed_scale']:
+            y1_min = np.min(y)*1.2
+            y1_max = np.max(y)*1.2
+        else:
+            y1_min = np.nanmin(y)*1.1
+            y1_max = np.nanmax(y)*1.1
+
+        # Set axis limits
+        ax1.set_xlim(x_min, x_max)
+        ax1.set_ylim(y1_min, y1_max)
+
+        ax1.tick_params(axis='both', which='major', pad=5)
+        #ax1.xaxis.set_minor_locator()
+        #ax1.yaxis.set_minor_locator()      
+        
+        ax1.step(velPlot, y, where='mid', color='black', linestyle='-')
+        ax1.plot(velPlot, yBFit, 'r-', label='best fit')
+        #ax1.step(vel, yInFit, 'b-', label='init fit')
+        aicStr = str(int(result.aic))
+        bicStr = str(int(result.bic))
+        redchiStr = str(int(result.redchi))
+        successStr = str(result.success)       
+        xText = self.cfg_par['gFit']['lambdaMin']+50
+
+
+        ax1.text(xText, y1_max*0.90, r'BIN ID:\t'+str(singleVorBinInfo['BIN_ID'][0]), {'color': 'k', 'fontsize': 8})
+        ax1.text(xText, y1_max*0.80, r'X,Y:\t'+str(xx)+','+str(yy), {'color': 'k', 'fontsize': 8})
+
+        #ax1.text(xText, x_max*0.85, r'Success:\t'+successStr, {'color': 'b'})
+        ax1.text(xText, y1_max*0.70, r'$\tilde{\chi}^2$:\t'+redchiStr, {'color': 'k', 'fontsize': 8})
+        ax1.text(xText, y1_max*0.60, r'aic:\t'+aicStr, {'color': 'k', 'fontsize': 8})
+        ax1.text(xText, y1_max*0.50, r'bic:\t'+bicStr, {'color': 'k', 'fontsize': 8})
+
+        #ax1.fill_between(vel, yBFit-dely, yBFit+dely, color="#ABABAB",
+        #        label='3-$\sigma$ uncertainty band')
+        if self.cfg_par['gFit']['modName'] !='g1':
+            comps = result.eval_components()
+            for i in xrange(0,len(lineInfo['ID'])):
+                
+                ax1.plot(velPlot, comps['g1ln'+str(i)+'_'], 'g--')
+            
+                if self.cfg_par['gFit']['modName'] =='g2':
+                    ax1.plot(velPlot, comps['g2ln'+str(i)+'_'], 'm--')    
+            
+                elif self.cfg_par['gFit']['modName'] !='g2':
+                    ax1.plot(velPlot, comps['g2ln'+str(i)+'_'], 'm--')    
+                    ax1.plot(velPlot, comps['g3ln'+str(i)+'_'], 'c--')    
+
+
+
+        # Calculate axis limits and aspect ratio
+        x_min = np.min(velPlot)
+        x_max = np.max(velPlot)
+        if self.cfg_par['gPlot']['Res-fixed_scale']:
+            y1_min = np.nanmin([-200.,np.nanmin(-noise)*1.1,np.nanmin(-yRes)*1.1])
+            y1_max = np.nanmax([+200.,np.nanmax(+noise)*1.1,np.nanmax(+yRes)*1.1])
+        else:
+            y1_min = np.nanmin(yRes)*1.1
+            y1_max = np.nanmax(yRes)*1.1  
+
+        # Set axis limits
+        ax2.set_xlim(x_min, x_max)
+        ax2.set_ylim(y1_min, y1_max) 
+
+        #ax2.plot(vel, amp(x, p(x,m,n)))
+        ax2.step(velPlot, yRes, 'g-', label='residuals')
+        ax2.axhline(color='k', linestyle=':', zorder=0)                           
+        ax2.fill_between(velPlot, -noise, noise,
+                         facecolor='grey', alpha=0.5,step='mid')
+
+        #ax1.legend(loc='best')
+
+
+
+        #plt.savefig(outPlot,
+        #            format='png') # if pdf,dpi=300,transparent=True,bbox_inches='tight',overwrite=True)
+        #plt.show()
+        #plt.close()
+           
+        return ax1
+

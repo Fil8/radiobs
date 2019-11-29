@@ -332,8 +332,6 @@ class gplay:
 
                         fitResArr = np.delete(fitResArr,counter)
                         lineArr = np.delete(lineArr,counter)  
-                        #counter +=1
-
                         continue
                     
                     #check if it is first time in bin
@@ -557,8 +555,6 @@ class gplay:
 
     def updateBinArray(self,binArr,vorBinInfo,index,i,j,counter):
   
-        print vorBinInfo['BIN_ID'][index]
-
         binArr['BIN_ID'][counter] = vorBinInfo['BIN_ID'][index]
         binArr['ID'][counter] = vorBinInfo['ID'][index]
         binArr['X'][counter] = vorBinInfo['X'][index]
@@ -1306,7 +1302,7 @@ class gplay:
 
         plt.savefig(outPlot,dpi=200,bbox_inches='tight',
                     format='png') # if pdf,dpi=300,transparent=True,bbox_inches='tight',overwrite=True)
-        plt.show()
+        #plt.show()
         plt.close()  
 
     def addFullSubplot(self,fig,gs,vel,y,result,noise,xx,yy,lineInfo,singleVorBinInfo):
@@ -1432,4 +1428,20 @@ class gplay:
         #plt.close()
            
         return ax1
+
+    def main(self,argv):
+        
+        for i, arg in enumerate(argv):
+            if (arg[0] == '-') and arg[1].isdigit(): argv[i] = ' ' + arg
+
+        parser = ArgumentParser(description='radiobs: gPlay play with gaussian fits in datacubes',
+                                formatter_class=MultilineFormatter,
+                                add_help=False)
+
+        add = parser.add_argument
+
+        add("-h", "--help",  action="store_true",
+                help="Print help message and exit")
+
+        print('\n\t************* --- radiobs : gPlay : DONE --- **************\n')
 

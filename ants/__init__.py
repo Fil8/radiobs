@@ -21,6 +21,7 @@ import fitsPlay
 import fluxInt
 import cvMe
 import fitSource
+import gPlay
 
 import pkg_resources
 try:
@@ -80,6 +81,15 @@ def main (argv):
         action='store_true',
         help= 'tool to convert astronomical units')
 
+    add('-gp', '--gPlay',
+        action='store_true',
+        help= 'tool to play with gaussian fits')
+
+    add('-gf', '--gFile',
+        type=str,
+        default=False,
+        help='''input .fits file''')
+
     args, unknown = parser.parse_known_args()
 
     if args.help and len(argv) ==1 :
@@ -94,7 +104,7 @@ radiobs -hp\t tools to read and modify header of fits file
 radiobs -fl\t tools to measure flux of sources in fits image
 radiobs -fp\t tools to modify data in fits files
 radiobs -cv\t tools to convert astronomical units
-
+radiobs -gp\t tools to play with gaussian fits
             """)
         print '\n\t************* --- radiobs : DONE --- **************\n'
 
@@ -130,6 +140,11 @@ radiobs -cv\t tools to convert astronomical units
         cv = cvMe.convert()
         cv.main(argv)
 
+    elif args.gPlay:
+        
+        print ('\n\t************* --- radiobs : gPlay --- **************\n')
+        gp = gPlay.gplay(args.gFile)
+        gp.gFit()
 
     else:
         print ('\n\t************* --- radiobs : ERROR --- **************')
@@ -139,6 +154,7 @@ radiobs -pb\t correction for gaussian primary beam
 radiobs -hp\t tools to read and modify header of fits file
 radiobs -fl\t tools to measure flux of sources in fits image
 radiobs -cv\t tools to convert units
+radiobs -gp\t tools to play with gaussian fits
             """)
         print ('\t************* --- radiobs : DONE  --- *************\n')
 

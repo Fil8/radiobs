@@ -307,6 +307,8 @@ class gplay:
         counter = 0
         #for j in xrange(205,208):
         #    for i in xrange(250,252):
+        #print dd.shape[1]*dd.shape[2]
+        #sys.exit(0)
         for j in xrange(0,dd.shape[1]):
             for i in xrange(0,dd.shape[2]):
                 
@@ -349,12 +351,17 @@ class gplay:
 
                         #plot Fit
                         #self.plotSpecFit(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
-                        self.plotLineZoom(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
+                        #self.plotLineZoom(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
 
                     else:
 
                         fitResArr = np.delete(fitResArr,counter)
                         lineArr = np.delete(lineArr,counter)                                
+                else:
+
+                    fitResArr = np.delete(fitResArr,counter)
+                    lineArr = np.delete(lineArr,counter)                                
+
 
                 counter+=1
 

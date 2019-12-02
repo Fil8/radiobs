@@ -305,12 +305,12 @@ class gplay:
         binID, binArr, fitResArr, lineArr = self.makeInputArrays(lineInfo, Xdim, Ydim)
        
         counter = 0
-        #for j in xrange(205,208):
-        #    for i in xrange(250,252):
+        for j in xrange(205,208):
+            for i in xrange(250,252):
         #print dd.shape[1]*dd.shape[2]
         #sys.exit(0)
-        for j in xrange(0,dd.shape[1]):
-            for i in xrange(0,dd.shape[2]):
+        #for j in xrange(0,dd.shape[1]):
+        #    for i in xrange(0,dd.shape[2]):
                 
                 y = dd[idxMin:idxMax,j,i]
 
@@ -351,7 +351,7 @@ class gplay:
 
                         #plot Fit
                         #self.plotSpecFit(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
-                        #self.plotLineZoom(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
+                        self.plotLineZoom(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
 
                     else:
 
@@ -684,7 +684,8 @@ class gplay:
         return lineArr
 
     def saveOutputTable(self, binArr, fitResArr, lineArr):
-        outTableName = self.cfg_par['general']['runNameDir']+'gPlayOut1.fits'
+        
+        outTableName = self.cfg_par['general']['runNameDir']+'/gPlayOut1.fits'
         modNameList = self.cfg_par['gFit']['modName']
 
         if os.path.exists(self.cfg_par['general']['outTableName']):
@@ -712,224 +713,6 @@ class gplay:
         hdul.writeto(outTableName,overwrite=True)
 
         return
-
-#     def makeOutputTable(self,lineInfo):
-
-#         hdr = fits.Header()
-#         hdr['COMMENT'] = "Here are the outputs of gPlay"
-#         hdr['COMMENT'] = "Ext 1 = binInfo Ext 2 = fit result Ext 3 = line parameters"
-#         empty_primary = fits.PrimaryHDU(header=hdr)
-
-#         col1 = fits.Column(name='ID', format='I')
-
-#         col2 = fits.Column(name='BIN_ID', format='I', )
-
-#         col3 = fits.Column(name='X', format='D')
-
-#         col4 = fits.Column(name='Y', format='D')
-#         col5 = fits.Column(name='X-Pix', format='I')
-#         col6 = fits.Column(name='Y-Pix', format='I')
-        
-
-#         cols1 = fits.ColDefs([col1, col2, col3, col4, col5, col6])
-
-#         t1 = fits.BinTableHDU.from_columns(cols1,name='BinInfo')                
-    
-#         hdul = fits.HDUList([empty_primary,t1])        
-        
-
-#         modNameList = self.cfg_par['gFit']['modName']
-# #        col7 = fits.Column(name='modName', format='10A', array=[modNameList])
-
-# #        col77 = fits.Column(name='BIN_ID', format='I', array=[singleVorBinInfo['BIN_ID']])
-#         col77 = fits.Column(name='BIN_ID', format='I')
-
-# #        col8 = fits.Column(name='fitSuccess', format='L', array=[tabFit['success']])
-#         col8 = fits.Column(name='fitSuccess', format='L')
-
-# #        col9 = fits.Column(name='redChi', format='D', array=[tabFit['redchi']])
-#         col9 = fits.Column(name='redChi', format='D')
-
-# #        col10 = fits.Column(name='aic', format='D', array=[tabFit['aic']])
-#         col10 = fits.Column(name='aic', format='D')
-
-# #        col11 = fits.Column(name='bic', format='D', array=[tabFit['bic']])
-#         col11 = fits.Column(name='bic', format='D')
-
-# #        col12 = fits.Column(name='nData', format='I', array=[tabFit['ndata']])
-#         col12 = fits.Column(name='nData', format='I')
-
-# #        col13 = fits.Column(name='nVariables', format='I', array=[tabFit['nvarys']])
-#         col13 = fits.Column(name='nVariables', format='I')
-
-# #        col14 = fits.Column(name='nFev', format='I', array=[tabFit['nfev']])
-#         col14 = fits.Column(name='nFev', format='I')
-
-#         cols2 = fits.ColDefs([col77, col8, col9, col10,
-#             col11, col12, col13])
-
-#         t2 = fits.BinTableHDU.from_columns(cols2,name='FitRes_'+modNameList)
-#         hdul.append(t2)  
-
-#         #fitRes = result.params.valuesdict()
-        
-#         hduline = fits.HDUList([empty_primary])        
-
-#         for i in xrange(0,len(lineInfo['ID'])):
-
-#             modName = self.cfg_par['gFit']['modName']
-#             lineName = str(lineInfo['Name'][i])
-#             if '[' in lineName:
-#                 lineName = lineName.replace("[", "")
-#                 lineName = lineName.replace("]", "")
-#             lineName = lineName+str(int(lineInfo['Wave'][i]))
-
-# #            amp = fitRes['g1ln'+str(i)+'_amplitude']
-# #            ctr = fitRes['g1ln'+str(i)+'_center']
-# #            sig = fitRes['g1ln'+str(i)+'_sigma']
-# #            fwhm = fitRes['g1ln'+str(i)+'_fwhm']
-# #            height = fitRes['g1ln'+str(i)+'_height']
-
-#             #amp_err = result.params[modName+'ln'+str(i)+'_amplitude'].stderr
-#             #sig_err = result.params[modName+'ln'+str(i)+'_sigma'].stderr
-#             #cen_err = result.params[modName+'ln'+str(i)+'_center'].stderr            
-
-# #            cL2 = fits.Column(name=lineName, format='I', array=[int(lineInfo['Wave'][i])])
-#             cL2 = fits.Column(name=lineName, format='I')
-
-#             #cL3 = fits.Column(name='g1_Amp_'+lineName, format='D', array=[amp])
-#             cL3 = fits.Column(name='g1_Amp_'+lineName, format='D')
-
-# #            cL4 = fits.Column(name='g1_Amp_Err_'+lineInfo['Name'][i], format='D', array=[amp_err])
-# #            cL5 = fits.Column(name='g1_Height_'+lineName, format='D', array=[height])
-#             cL5 = fits.Column(name='g1_Height_'+lineName, format='D')
-
-
-# #            g1Ctr = self.lambdaVRad(np.exp(ctr),lineInfo['Wave'][i])
-#             #g1CtrErr = self.lambdaVRad(np.exp(cen_err),lineInfo['Wave'][i])
-# #            g1Sigma = self.lambdaVRad(np.exp(sig),lineInfo['Wave'][i])
-#             #g1SigmaErr = self.lambdaVRad(np.exp(sig_err),lineInfo['Wave'][i])
-# #            g1FWHM = self.lambdaVRad(np.exp(fwhm),lineInfo['Wave'][i])
-            
-# #            cL6 = fits.Column(name='g1_Centre_'+lineName, format='D', array=[g1Ctr], unit='km/s')
-#             cL6 = fits.Column(name='g1_Centre_'+lineName, format='D', unit='km/s')
- 
-#             #cL7 = fits.Column(name='g1_Centre_Err_'+lineInfo['Name'][i], format='D', array=[g1CtrErr], unit='km/s')
-# #            cL8 = fits.Column(name='g1_Sigma_'+lineName, format='D', array=[g1Sigma], unit='km/s')
-
-#             cL8 = fits.Column(name='g1_Sigma_'+lineName, format='D', unit='km/s')
-#             #cL9 = fits.Column(name='g1_Sigma_Err_'+lineInfo['Name'][i], format='D', array=[g1Sigma], unit='km/s')
-# #            cL10 = fits.Column(name='g1_FWHM_'+lineName, format='D', array=[g1FWHM], unit='km/s')
-#             cL10 = fits.Column(name='g1_FWHM_'+lineName, format='D', unit='km/s')
-            
-#             if modName == 'g1':
-#                 colsG1 = fits.ColDefs([cL2, cL3,
-#                     cL5, cL6,cL8,cL10])
-#                 if i ==0:
-#                     t = fits.BinTableHDU.from_columns(colsG1,name='LineRes_'+modNameList)
-#                 else:
-#                     t1Data = t.data
-#                     t1Cols = t1Data.columns
-#                     t = fits.BinTableHDU.from_columns(t1Cols+colsG1,name='LineRes_'+modNameList)
-            
-#             else: 
-                
-#                 #amp = fitRes['g2ln'+str(i)+'_amplitude']
-#                 #ctr = fitRes['g2ln'+str(i)+'_center']
-#                 #sig = fitRes['g2ln'+str(i)+'_sigma']
-#                 #fwhm = fitRes['g2ln'+str(i)+'_fwhm']
-#                 #height = fitRes['g2ln'+str(i)+'_height']
-
-#                 #amp_err = result.params['g2ln'+str(i)+'_amplitude'].stderr
-#                 #sig_err = result.params['g2ln'+str(i)+'_sigma'].stderr
-#                 #cen_err = result.params['g2ln'+str(i)+'_center'].stderr            
-
-
-# #                cL11 = fits.Column(name='g2_Amp_'+lineName, format='D', array=[amp])
-#                 cL11 = fits.Column(name='g2_Amp_'+lineName, format='D')
-
-#                 #cL12 = fits.Column(name='g2_Amp_Err_'+lineInfo['Name'][i], format='D', array=[amp_err])
-# #                cL13 = fits.Column(name='g2_Height_'+lineName, format='D', array=[height])
-#                 cL13 = fits.Column(name='g2_Height_'+lineName, format='D')
-
-#                 #g2Ctr = self.lambdaVRad(np.exp(ctr),lineInfo['Wave'][i])
-#                 #g2CtrErr = self.lambdaVRad(np.exp(cen_err),lineInfo['Wave'][i])
-#                 #g2Sigma = self.lambdaVRad(np.exp(sig),lineInfo['Wave'][i])
-#                 #g2SigmaErr = self.lambdaVRad(np.exp(sig_err),lineInfo['Wave'][i])
-#                 #g2FWHM = self.lambdaVRad(np.exp(fwhm),lineInfo['Wave'][i])
-            
-# #                cL14 = fits.Column(name='g2_Centre_'+lineName, format='D', array=[g2Ctr], unit='km/s')
-#                 cL14 = fits.Column(name='g2_Centre_'+lineName, format='D', unit='km/s')
-
-#                 #cL15 = fits.Column(name='g2_Centre_Err_'+lineInfo['Name'][i], format='D', array=[g2CtrErr], unit='km/s')
-# #                cL16 = fits.Column(name='g2_Sigma_'+lineName, format='D', array=[g2Sigma], unit='km/s')
-#                 cL16 = fits.Column(name='g2_Sigma_'+lineName, format='D', unit='km/s')
- 
-#                 #cL17 = fits.Column(name='g2_Sigma_Err_'+lineInfo['Name'][i], format='D', array=[g2Sigma], unit='km/s')
-# #                cL18 = fits.Column(name='g2_FWHM_'+lineName, format='D', array=[g2FWHM], unit='km/s')
-#                 cL18 = fits.Column(name='g2_FWHM_'+lineName, format='D', unit='km/s')
-
-
-#                 if modName == 'g2':
-#                     colsG2 = fits.ColDefs([cL2, cL3, cL5, cL6,cL8,cL10,
-#                         cL11,cL13,cL14,cL16,cL18])
-#                     if i ==0:
-#                         t = fits.BinTableHDU.from_columns(colsG2,name='LineRes_'+modNameList)
-#                     else:
-#                         t2Data = t.data
-#                         t2Cols = t2Data.columns
-#                         t = fits.BinTableHDU.from_columns(t2Cols+colsG2,name='LineRes_'+modNameList)
-                
-#                 if self.cfg_par['gFit']['modName'] == 'g3':
-
-#                     #amp = fitRes['g2ln'+str(i)+'_amplitude']
-#                     #ctr = fitRes['g2ln'+str(i)+'_center']
-#                     #sig = fitRes['g2ln'+str(i)+'_sigma']
-#                     #fwhm = fitRes['g2ln'+str(i)+'_fwhm']
-#                     #height = fitRes['g2ln'+str(i)+'_height']
-
-#                     #amp_err = result.params['g2ln'+str(i)+'_amplitude'].stderr
-#                     #sig_err = result.params['g2ln'+str(i)+'_sigma'].stderr
-#                     #cen_err = result.params['g2ln'+str(i)+'_center'].stderr       
-
-# #                    cL19 = fits.Column(name='g3_Amp_'+lineName, format='D', array=[amp])
-#                     cL19 = fits.Column(name='g3_Amp_'+lineName, format='D')
-
-#                     #cL20 = fits.Column(name='g3_Amp_Err_'+lineInfo['Name'][i], format='D', array=[amp_err])
-# #                    cL21 = fits.Column(name='g3_Height_'+lineName, format='D', array=[height])
-#                     cL21 = fits.Column(name='g3_Height_'+lineName, format='D')
-
-# #                    g3Ctr = self.lambdaVRad(np.exp(ctr),lineInfo['Wave'][i])
-#                     #g3CtrErr = self.lambdaVRad(np.exp(cen_err),lineInfo['Wave'][i])
-# #                    g3Sigma = self.lambdaVRad(np.exp(sig),lineInfo['Wave'][i])
-#                     #g3SigmaErr = self.lambdaVRad(np.exp(sig_err),lineInfo['Wave'][i])
-# #                    g3FWHM = self.lambdaVRad(np.exp(fwhm),lineInfo['Wave'][i])
-                
-# #                    cL22 = fits.Column(name='g3_Centre_'+lineName, format='D', array=[g3Ctr], unit='km/s')
-#                     cL22 = fits.Column(name='g3_Centre_'+lineName, format='D', unit='km/s')
-
-#                     #cL23 = fits.Column(name='g3_Centre_Err_'+lineInfo['Name'][i], format='D', array=[g3CtrErr], unit='km/s')
-# #                    cL24 = fits.Column(name='g3_Sigma_'+lineName, format='D', array=[g3Sigma], unit='km/s')
-#                     cL24 = fits.Column(name='g3_Sigma_'+lineName, format='D', unit='km/s')
-
-#                     #cL25 = fits.Column(name='g3_Sigma_Err_'+lineInfo['Name'][i], format='D', array=[g3Sigma], unit='km/s')
-# #                    cL26 = fits.Column(name='g3_FWHM_'+lineName, format='D', array=[g3FWHM], unit='km/s')
-#                     cL26 = fits.Column(name='g3_FWHM_'+lineName, format='D', unit='km/s')
-
-#                     colsG3 = fits.ColDefs([cL2,cL3, cL5, cL6,cL8,cL10,
-#                         cL11,cL13,cL14,cL16,cL18,cL19,cL21,cL22,cL24, cL26])
-#                     if i ==0:
-#                         t = fits.BinTableHDU.from_columns(colsG3,name='LineRes_'+modNameList)
-#                     else:
-#                         t3Data = t[0].data
-#                         t3Cols = t3Data.columns
-#                         t = fits.BinTableHDU.from_columns(t3Cols+colsG3,name='LineRes_'+modNameList)
-
-#         hdul.append(t)  
-#         hdul.info()
-#         hdul.writeto(self.cfg_par['general']['outTableName'], overwrite=True)
-        
-#         return hdul
 
 #----------------------#
 # rc param initialize
@@ -1123,7 +906,7 @@ class gplay:
         yInFit = result.init_fit
         key = 'general'
         
-        outPlotDir = self.cfg_par[key]['runNameDir']+self.cfg_par['gPlot']['outPlotDirName']
+        outPlotDir = self.cfg_par[key]['runNameDir']+'/'+self.cfg_par['gPlot']['outPlotDirName']
         if not os.path.exists(outPlotDir):
             os.mkdir(outPlotDir)
         

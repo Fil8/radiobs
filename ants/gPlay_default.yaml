@@ -20,7 +20,7 @@ gFit:
   dltSigma13: 100.
   dltV13: 150.
 gPlot:
-  outPlotDirName: 'myplots/'
+  outPlotDirName: '/myplots/'
   fixed_scale: False
   Res-fixed_scale: True
   deltaVlabel: 1000.

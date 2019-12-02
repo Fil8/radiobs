@@ -305,12 +305,12 @@ class gplay:
         binID, binArr, fitResArr, lineArr = self.makeInputArrays(lineInfo, Xdim, Ydim)
        
         counter = 0
-        for j in xrange(205,208):
-            for i in xrange(250,252):
+        #for j in xrange(205,208):
+        #    for i in xrange(250,252):
         #print dd.shape[1]*dd.shape[2]
         #sys.exit(0)
-        #for j in xrange(0,dd.shape[1]):
-        #    for i in xrange(0,dd.shape[2]):
+        for j in xrange(0,dd.shape[1]):
+            for i in xrange(0,dd.shape[2]):
                 
                 y = dd[idxMin:idxMax,j,i]
 

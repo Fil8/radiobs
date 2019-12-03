@@ -355,7 +355,7 @@ class gplay:
                         #self.plotSpecFit(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
                         #self.plotLineZoom(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
                     else:
-                        p#rint counter, i,j
+                        #p#rint counter, i,j
                         fitResArr = np.delete(fitResArr,counter,0)
                         lineArr = np.delete(lineArr,counter,0)                                
                 else:

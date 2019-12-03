@@ -311,7 +311,7 @@ class gplay:
         #sys.exit(0)
         for j in xrange(0,dd.shape[1]):
             for i in xrange(0,dd.shape[2]):
-                
+                #print 'ciao'
                 y = dd[idxMin:idxMax,j,i]
 
                 waveCut = wave[idxMin:idxMax]
@@ -327,17 +327,19 @@ class gplay:
                     index = np.where((vorBinInfo['X'] < (xVal+pxSize/2.+diffusion)) & 
                     ((xVal-pxSize/2.-diffusion) < vorBinInfo['X']) & (vorBinInfo['Y'] < (yVal+pxSize/2.+diffusion)) & 
                     ((yVal-pxSize/2.-diffusion) < vorBinInfo['Y']))
-                    
+                    #print index
                     if np.sum(index)>0: 
                         binArr = self.updateBinArray(binArr,vorBinInfo,index,i,j,counter)
                         binIDName = binArr['BIN_ID'][counter]     
                     else:
+                        #print 'continue'
                         fitResArr = np.delete(fitResArr,counter,0)
                         lineArr = np.delete(lineArr,counter,0)  
+                        counter+=1
                         continue
                     
                     #check if it is first time in bin
-                    if binIDName not in binID[:,:] and index is not None:
+                    if binIDName not in binID[:,:] and np.sum(index)>0:
 
                         
                         binID[j,i] = binIDName
@@ -353,6 +355,7 @@ class gplay:
                         #self.plotSpecFit(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
                         #self.plotLineZoom(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
                     else:
+                        p#rint counter, i,j
                         fitResArr = np.delete(fitResArr,counter,0)
                         lineArr = np.delete(lineArr,counter,0)                                
                 else:
@@ -361,7 +364,7 @@ class gplay:
                     lineArr = np.delete(lineArr,counter,0)                                
 
                 counter+=1
-
+                #print 'end_for'
         self.saveOutputTable(binArr, fitResArr, lineArr)
     
         print('''\t+---------+\n\t gFit done\n\t+---------+''')

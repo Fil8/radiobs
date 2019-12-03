@@ -281,9 +281,7 @@ class headplay:
 
         if output==False:
             output=fileName
-        print key,value        
 
-        print heads
         fits.writeto(output,datas,heads,overwrite=True)
 
         return 0 

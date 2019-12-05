@@ -311,7 +311,6 @@ class gplay:
         #sys.exit(0)
         for j in xrange(0,dd.shape[1]):
             for i in xrange(0,dd.shape[2]):
-                print counter
                 #print 'ciao'
                 y = dd[idxMin:idxMax,j,i]
 
@@ -334,7 +333,6 @@ class gplay:
                         binArr = self.updateBinArray(binArr,vorBinInfo,index,i,j,counter)
                         binIDName = binArr['BIN_ID'][counter]     
                     else:
-                        print 'continue'
                         #fitResArr = np.delete(fitResArr,counter,0)
                         #lineArr = np.delete(lineArr,counter,0)  
                         counter+=1
@@ -371,7 +369,6 @@ class gplay:
         match_indices = np.where(fitResArr['BIN_ID'] == 0.0)[0]
         fitResArr = np.delete(fitResArr,match_indices,0)                                
         match_indices = np.where(lineArr['BIN_ID'] == 0)[0]
-        print match_indices
         lineArr = np.delete(lineArr,match_indices,0)                                
 
                 #print 'end_for'

@@ -623,11 +623,11 @@ class gplay:
 
             if modName != 'g1':
 
-                amp = fitRes['g2ln'+str(i)+'_amplitude']
-                ctr = fitRes['g2ln'+str(i)+'_center']
-                sig = fitRes['g2ln'+str(i)+'_sigma']
-                fwhm = fitRes['g2ln'+str(i)+'_fwhm']
-                height = fitRes['g2ln'+str(i)+'_height']
+                amp = fitRes['g2ln'+str(ii)+'_amplitude']
+                ctr = fitRes['g2ln'+str(ii)+'_center']
+                sig = fitRes['g2ln'+str(ii)+'_sigma']
+                fwhm = fitRes['g2ln'+str(ii)+'_fwhm']
+                height = fitRes['g2ln'+str(ii)+'_height']
 
                 g2Ctr = self.lambdaVRad(np.exp(ctr),lineInfo['Wave'][ii])
                 g2Sigma = self.lambdaVRad(np.exp(sig),lineInfo['Wave'][ii])
@@ -647,11 +647,11 @@ class gplay:
 
                 if modName == 'g3':
 
-                    amp = fitRes['g3ln'+str(i)+'_amplitude']
-                    ctr = fitRes['g3ln'+str(i)+'_center']
-                    sig = fitRes['g3ln'+str(i)+'_sigma']
-                    fwhm = fitRes['g3ln'+str(i)+'_fwhm']
-                    height = fitRes['g3ln'+str(i)+'_height']
+                    amp = fitRes['g3ln'+str(ii)+'_amplitude']
+                    ctr = fitRes['g3ln'+str(ii)+'_center']
+                    sig = fitRes['g3ln'+str(ii)+'_sigma']
+                    fwhm = fitRes['g3ln'+str(ii)+'_fwhm']
+                    height = fitRes['g3ln'+str(ii)+'_height']
 
                     g3Ctr = self.lambdaVRad(np.exp(ctr),lineInfo['Wave'][ii])
                     g3Sigma = self.lambdaVRad(np.exp(sig),lineInfo['Wave'][ii])

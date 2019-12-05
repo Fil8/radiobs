@@ -336,7 +336,7 @@ class gplay:
 
                         # FIT
                         result = gMod.fit(y, gPars, x=waveCut)
-                        save_modelresult(result, modNameDir+binIDName+'_'+self.cfg_par['gFit']['modName']+'.sav')
+                        save_modelresult(result, modNameDir+str(binIDName)+'_'+self.cfg_par['gFit']['modName']+'.sav')
 
                         fitResArr = self.updateFitArray(fitResArr,result,binIDName,counter)
                         lineArr = self.updateLineArray(lineArr,result,lineInfo,binIDName,counter)

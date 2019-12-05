@@ -311,6 +311,7 @@ class gplay:
         #sys.exit(0)
         for j in xrange(0,dd.shape[1]):
             for i in xrange(0,dd.shape[2]):
+                print counter
                 #print 'ciao'
                 y = dd[idxMin:idxMax,j,i]
 
@@ -327,21 +328,21 @@ class gplay:
                     index = np.where((vorBinInfo['X'] < (xVal+pxSize/2.+diffusion)) & 
                     ((xVal-pxSize/2.-diffusion) < vorBinInfo['X']) & (vorBinInfo['Y'] < (yVal+pxSize/2.+diffusion)) & 
                     ((yVal-pxSize/2.-diffusion) < vorBinInfo['Y']))
-                    #print index
+                    print index
+                    
                     if np.sum(index)>0: 
                         binArr = self.updateBinArray(binArr,vorBinInfo,index,i,j,counter)
                         binIDName = binArr['BIN_ID'][counter]     
                     else:
-                        #print 'continue'
-                        fitResArr = np.delete(fitResArr,counter,0)
-                        lineArr = np.delete(lineArr,counter,0)  
+                        print 'continue'
+                        #fitResArr = np.delete(fitResArr,counter,0)
+                        #lineArr = np.delete(lineArr,counter,0)  
                         counter+=1
                         continue
                     
                     #check if it is first time in bin
                     if binIDName not in binID[:,:] and np.sum(index)>0:
-
-                        
+ 
                         binID[j,i] = binIDName
                         noiseVec = noiseBin[binIDName][:]
 
@@ -354,16 +355,25 @@ class gplay:
                         #plot Fit
                         #self.plotSpecFit(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
                         #self.plotLineZoom(waveCut, y,result,noiseVec[idxMin:idxMax],i,j,lineInfo,vorBinInfo[index])
-                    else:
+                    #else:
                         #p#rint counter, i,j
-                        fitResArr = np.delete(fitResArr,counter,0)
-                        lineArr = np.delete(lineArr,counter,0)                                
-                else:
+                        #fitResArr = np.delete(fitResArr,counter,0)
+                        #lineArr = np.delete(lineArr,counter,0)                                
+                #else:
 
-                    fitResArr = np.delete(fitResArr,counter,0)
-                    lineArr = np.delete(lineArr,counter,0)                                
+                #    fitResArr = np.delete(fitResArr,counter,0)
+                #    lineArr = np.delete(lineArr,counter,0)                                
 
                 counter+=1
+        
+        match_indices = np.where(binArr['BIN_ID'] == 0.0)[0]
+        binArr = np.delete(binArr,match_indices,0)                                
+        match_indices = np.where(fitResArr['BIN_ID'] == 0.0)[0]
+        fitResArr = np.delete(fitResArr,match_indices,0)                                
+        match_indices = np.where(lineArr['BIN_ID'] == 0)[0]
+        print match_indices
+        lineArr = np.delete(lineArr,match_indices,0)                                
+
                 #print 'end_for'
         self.saveOutputTable(binArr, fitResArr, lineArr)
     
@@ -495,7 +505,7 @@ class gplay:
         binID = np.zeros([Ydim,Xdim],dtype=int)
 
         nam = tuple (['ID', 'BIN_ID', 'X', 'Y', 'PixX', 'PixY'])
-        binArr = np.empty([Ydim*Xdim], dtype={'names':nam,
+        binArr = np.zeros([Ydim*Xdim], dtype={'names':nam,
                           'formats':('i4', 'i4', 'i4', 'f8', 'f8', 'i4', 'i4')})
         nam = tuple(['BIN_ID', 'fitSuccess', 'redChi', 'aic', 'bic', 'nData', 'nVariables', 'nFev'])
         fitResArr = np.zeros([Ydim*Xdim], dtype={'names':nam,
@@ -503,11 +513,14 @@ class gplay:
 
         lineNameList = []
         frmList = []
+        lineNameList.append('BIN_ID')
+        frmList.append('i4')
         for i in xrange (0,len(lineInfo['ID'])):
             lineName = str(lineInfo['Name'][i])+str(int(lineInfo['Wave'][i]))
             if '[' in lineName:
                 lineName = lineName.replace("[", "")
                 lineName = lineName.replace("]", "")
+            
 
             lineNameList.append(lineName)
             frmList.append('i4')
@@ -600,6 +613,7 @@ class gplay:
 
 
         modName = self.cfg_par['gFit']['modName']
+        lineArr['BIN_ID'][counter] = binIDName
 
         for ii in xrange(0,len(lineInfo['ID'])):
 

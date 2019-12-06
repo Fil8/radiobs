@@ -23,11 +23,11 @@ import cvMe
 import fitSource
 import gPlay
 
-import pkg_resources
-try:
-    __version__ = pkg_resources.require("radiobs")[0].version
-except pkg_resources.DistributionNotFound:
-    __version__ = "dev"
+#import pkg_resources
+#try:
+#    __version__ = pkg_resources.require("radiobs")[0].version
+#except pkg_resources.DistributionNotFound:
+#    __version__ = "dev"
 
 ####################################################################################################
 

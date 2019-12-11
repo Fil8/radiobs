@@ -641,9 +641,9 @@ class gplay:
           
                 lineArr['g2_Amp_'+lineName][counter] = amp
                 lineArr['g2_Height_'+lineName][counter] = height
-                lineArr['g2_Centre_'+lineName][counter] = g1Ctr
-                lineArr['g2_Sigma_'+lineName][counter] = g1Sigma
-                lineArr['g2_FWHM_'+lineName][counter] = g1FWHM
+                lineArr['g2_Centre_'+lineName][counter] = g2Ctr
+                lineArr['g2_Sigma_'+lineName][counter] = g2Sigma
+                lineArr['g2_FWHM_'+lineName][counter] = g2FWHM
 
                 if modName == 'g3':
 
@@ -706,9 +706,9 @@ class gplay:
 
     def makeMoments(self):
 
-        workDir = gp.cfg_par['general']['workdir']
+        workDir = self.cfg_par['general']['workdir']
 
-        f = fits.open(workDir+gp.cfg_par['general']['dataCubeName'])
+        f = fits.open(workDir+self.cfg_par['general']['dataCubeName'])
         dd = f[0].header
 
         lineInfo = self.openLineList()
@@ -721,7 +721,7 @@ class gplay:
 
             lineName = lineName+str(int(lineInfo['Wave'][ii]))
 
-            self.moments(lineName,dd,gp.cfg_par['general']['outTableName'])
+            self.moments(lineName,dd,self.cfg_par['general']['outTableName'])
 
         return
 
@@ -756,25 +756,29 @@ class gplay:
         mom0Head = header.copy()
         mom1Head = header.copy()
         mom2Head = header.copy()
+        binHead  = header.copy()
+
 
         hdul = fits.open(self.cfg_par['general']['outTableName'])
         lines = hdul['LineRes_'+self.cfg_par['gFit']['modName']].data
 
         tabGen = hdul['BinInfo'].data
 
-        mom0G1 = np.zeros([header['NAXIS2'],header['NAXIS1']])
-        mom1G1 = np.zeros([header['NAXIS2'],header['NAXIS1']])
-        mom2G1 = np.zeros([header['NAXIS2'],header['NAXIS1']])
+        mom0G1 = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
+        mom1G1 = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
+        mom2G1 = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
+
+        binMap = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
         
         if modName != 'g1':
-            mom0Tot = np.zeros([header['NAXIS2'],header['NAXIS1']])
-            mom0G2 = np.zeros([header['NAXIS2'],header['NAXIS1']])
-            mom1G2 = np.zeros([header['NAXIS2'],header['NAXIS1']])
-            mom2G2 = np.zeros([header['NAXIS2'],header['NAXIS1']])
+            mom0Tot = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
+            mom0G2 = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
+            mom1G2 = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
+            mom2G2 = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
             if modName == 'g3':
-                mom0G3 = np.zeros([header['NAXIS2'],header['NAXIS1']])
-                mom1G3 = np.zeros([header['NAXIS2'],header['NAXIS1']])
-                mom2G3 = np.zeros([header['NAXIS2'],header['NAXIS1']])
+                mom0G3 = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
+                mom1G3 = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
+                mom2G3 = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
 
 
         for i in xrange(0,len(lines['BIN_ID'])):
@@ -785,6 +789,7 @@ class gplay:
                 mom0G1[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g1_Amp_'+lineName][i]
                 mom1G1[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g1_Centre_'+lineName][i]
                 mom2G1[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g1_sigma_'+lineName][i]
+                binMap[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['BIN_ID'][i]
 
                 if modName != 'g1':
                     mom0G2[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g2_Amp_'+lineName][i]
@@ -795,6 +800,10 @@ class gplay:
                         mom0G3[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g3_Amp_'+lineName][i]
                         mom1G3[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g3_Centre_'+lineName][i]
                         mom2G3[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g3_sigma_'+lineName][i]
+
+        binHead['SPECSYS'] = 'topocent'
+        binHead['BUNIT'] = 'Flux'
+        fits.writeto(momModDir+'binMap.fits',binMap, binHead,overwrite=True)
 
 
         mom0Head['SPECSYS'] = 'topocent'
@@ -813,16 +822,38 @@ class gplay:
             fits.writeto(momModDir+'mom0_g2-'+lineName+'.fits',mom0G2,mom0Head,overwrite=True)
             fits.writeto(momModDir+'mom1_g2-'+lineName+'.fits',mom1G2,mom1Head,overwrite=True)
             if modName == 'g2':
-                fits.writeto(momModDir+'mom0_tot-'+lineName+'.fits',mom1G1+mom1G2,mom1Head,overwrite=True)
+                fits.writeto(momModDir+'mom0_tot-'+lineName+'.fits',mom0G1+mom0G2,mom0Head,overwrite=True)
             if modName == 'g3':
                 fits.writeto(momModDir+'mom0_g3-'+lineName+'.fits',mom0G3,mom0Head,overwrite=True)
                 fits.writeto(momModDir+'mom1_g3-'+lineName+'.fits',mom1G3,mom1Head,overwrite=True)
-                fits.writeto(momModDir+'mom0_tot-'+lineName+'.fits',mom1G1+mom1G2+mom1G3,mom1Head,overwrite=True)
+                fits.writeto(momModDir+'mom2_g3-'+lineName+'.fits',mom2G3,mom2Head,overwrite=True)
+                fits.writeto(momModDir+'mom0_tot-'+lineName+'.fits',mom0G1+mom0G2+mom0G3,mom0Head,overwrite=True)
+
+        return
+
+    def makeLineRatioMaps(self):
+
+        workDir = self.cfg_par['general']['workdir']
+
+        f = fits.open(workDir+self.cfg_par['general']['dataCubeName'])
+        dd = f[0].header
+
+        #lineInfo = self.openLineList()
+
+        #for ii in xrange(0,len(lineInfo['ID'])):
+        #    lineName = str(lineInfo['Name'][ii])
+        #    if '[' in lineName:
+        #        lineName = lineName.replace("[", "")
+        #        lineName = lineName.replace("]", "")
+
+            #lineName = lineName+str(int(lineInfo['Wave'][ii]))
+
+        self.momLineRatio(dd,self.cfg_par['general']['outTableName'])
 
         return
 
 
-    def momLineRatio(self,lineName,header,outTableName):
+    def momLineRatio(self,header,outTableName):
 
         momDir = self.cfg_par['general']['runNameDir']+'/moments/'
         if not os.path.exists(momDir):
@@ -848,70 +879,55 @@ class gplay:
         if 'NAXIS3' in header:
             del header['NAXIS3']
 
-        mom0Head = header.copy()
-        mom1Head = header.copy()
-        mom2Head = header.copy()
-
+        lineMapHead = header.copy()
+        
         hdul = fits.open(self.cfg_par['general']['outTableName'])
-        lines = hdul['LineRes_'+self.cfg_par['gFit']['modName']].data
+        lineBPT = hdul['BPT_'+self.cfg_par['gFit']['modName']].data
 
         tabGen = hdul['BinInfo'].data
 
-        mom0G1 = np.zeros([header['NAXIS2'],header['NAXIS1']])
-        mom1G1 = np.zeros([header['NAXIS2'],header['NAXIS1']])
-        mom2G1 = np.zeros([header['NAXIS2'],header['NAXIS1']])
+        numCols = len(lineBPT.dtype.names)
+        if modName == 'g2':
+            numCols = (numCols-1)/3
+        if modName == 'g3':
+            numCols = (numCols-1)/4
+        print numCols
+
+        for i in xrange(1,numCols+1):
+            lineMapG1 = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
         
-        if modName != 'g1':
-            mom0Tot = np.zeros([header['NAXIS2'],header['NAXIS1']])
-            mom0G2 = np.zeros([header['NAXIS2'],header['NAXIS1']])
-            mom1G2 = np.zeros([header['NAXIS2'],header['NAXIS1']])
-            mom2G2 = np.zeros([header['NAXIS2'],header['NAXIS1']])
+            if modName != 'g1':
+                lineMapToT = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
+                lineMapG2 = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
+            
             if modName == 'g3':
-                mom0G3 = np.zeros([header['NAXIS2'],header['NAXIS1']])
-                mom1G3 = np.zeros([header['NAXIS2'],header['NAXIS1']])
-                mom2G3 = np.zeros([header['NAXIS2'],header['NAXIS1']])
+            
+                lineMapG3 = np.zeros([header['NAXIS2'],header['NAXIS1']])*np.nan
 
-        for i in xrange(0,len(lines['BIN_ID'])):
+            for j in xrange(0,len(lineBPT['BIN_ID'])):
 
-            match_bin = np.where(tabGen['BIN_ID']==lines['BIN_ID'][i])[0]
+                match_bin = np.where(tabGen['BIN_ID']==lineBPT['BIN_ID'][j])[0]
+                for index in match_bin:
+                    lineMapG1[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lineBPT[j][i]
 
-            for index in match_bin:
-                mom0G1[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g1_Amp_'+lineName][i]
-                mom1G1[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g1_Centre_'+lineName][i]
-                mom2G1[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g1_sigma_'+lineName][i]
+                    if modName != 'g1':                        
+                        lineMapToT[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lineBPT[j][i+numCols*2]
+                        lineMapG2[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lineBPT[j][i+numCols]
 
-                if modName != 'g1':
-                    mom0G2[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g2_Amp_'+lineName][i]
-                    mom1G2[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g2_Centre_'+lineName][i]
-                    mom2G2[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g2_sigma_'+lineName][i]
-                    
-                    if modName == 'g3':
-                        mom0G3[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g3_Amp_'+lineName][i]
-                        mom1G3[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g3_Centre_'+lineName][i]
-                        mom2G3[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lines['g3_sigma_'+lineName][i]
+                        if modName == 'g3':
+                            lineMapG3[int(tabGen['PixY'][index]),int(tabGen['PixX'][index])] = lineBPT[j][i+numCols+2]
 
 
-        mom0Head['SPECSYS'] = 'topocent'
-        mom0Head['BUNIT'] = 'Jy/beam.km/s'
-        fits.writeto(momModDir+'mom0_g1-'+lineName+'.fits',mom0G1,mom0Head,overwrite=True)
 
-        mom1Head['SPECSYS'] = 'topocent'
-        mom1Head['BUNIT'] = 'km/s'
-        fits.writeto(momModDir+'mom1_g1-'+lineName+'.fits',mom1G1,mom1Head,overwrite=True)
+            lineMapHead['BUNIT'] = 'Flux'
+            fits.writeto(momModDir+'BPT-'+str(lineBPT.dtype.names[i])+'.fits',lineMapG1,lineMapHead,overwrite=True)
+            
+            if modName != 'g1':
+                fits.writeto(momModDir+'BPT-'+str(lineBPT.dtype.names[i+numCols])+'.fits',lineMapG2,lineMapHead,overwrite=True)
+                fits.writeto(momModDir+'BPT-'+str(lineBPT.dtype.names[i+numCols*2])+'.fits',lineMapToT,lineMapHead,overwrite=True)
 
-        mom2Head['SPECSYS'] = 'topocent'
-        mom2Head['BUNIT'] = 'km/s'
-        fits.writeto(momModDir+'mom2_g1-'+lineName+'.fits',mom2G1,mom2Head,overwrite=True)
-        
-        if modName != 'g1':
-            fits.writeto(momModDir+'mom0_g2-'+lineName+'.fits',mom0G2,mom0Head,overwrite=True)
-            fits.writeto(momModDir+'mom1_g2-'+lineName+'.fits',mom1G2,mom1Head,overwrite=True)
-            if modName == 'g2':
-                fits.writeto(momModDir+'mom0_tot-'+lineName+'.fits',mom1G1+mom1G2,mom1Head,overwrite=True)
-            if modName == 'g3':
-                fits.writeto(momModDir+'mom0_g3-'+lineName+'.fits',mom0G3,mom0Head,overwrite=True)
-                fits.writeto(momModDir+'mom1_g3-'+lineName+'.fits',mom1G3,mom1Head,overwrite=True)
-                fits.writeto(momModDir+'mom0_tot-'+lineName+'.fits',mom1G1+mom1G2+mom1G3,mom1Head,overwrite=True)
+                if modName == 'g3':
+                    fits.writeto(momModDir+'BPT-'+str(lineBPT.dtype.names[i+numCols+2])+'.fits',lineMapG3,lineMapHead,overwrite=True)
 
         return
 
@@ -944,25 +960,25 @@ class gplay:
         if 'OIII5006' in lineNameID and 'Hb4861' in lineNameID:
             lrOHbG1 = np.divide(lines['g1_Amp_'+'OIII5006'],lines['g1_Amp_'+'Hb4861'])
             tot = np.column_stack((tot,lrOHbG1))
-            lineNameList.append('OIII5006/Hb4861')
+            lineNameList.append('G1-OIII5006/Hb4861')
             frmList.append('f8')
 
         if 'NII6583' in lineNameID and 'Ha6562' in lineNameID:
             lrNIIHaG1 = np.divide(lines['g1_Amp_'+'NII6583'],lines['g1_Amp_'+'Ha6562'])
             tot = np.column_stack((tot,lrNIIHaG1))
-            lineNameList.append('NII6583/Ha6562')
+            lineNameList.append('G1-NII6583/Ha6562')
             frmList.append('f8')
 
         if 'OI6300' in lineNameID and 'Ha6562' in lineNameID:
             lrOIHaG1 = np.divide(lines['g1_Amp_'+'OI6300'],lines['g1_Amp_'+'Ha6562'])
             tot = np.column_stack((tot,lrOIHaG1))
-            lineNameList.append('OI6300/Ha6562')
+            lineNameList.append('G1-OI6300/Ha6562')
             frmList.append('f8')
 
         if 'SII6716' in lineNameID and 'Ha6562' in lineNameID:
             lrSIIHaG1 = np.divide((lines['g1_Amp_'+'SII6716']+lines['g1_Amp_'+'SII6730']),lines['g1_Amp_'+'Ha6562'])
             tot = np.column_stack((tot,lrSIIHaG1))
-            lineNameList.append('SII6716/Ha6562')
+            lineNameList.append('G1-SII6716/Ha6562')
             frmList.append('f8')
 
         if modName != 'g1':
@@ -972,29 +988,39 @@ class gplay:
                 lrOHbG2 = np.divide(lines['g2_Amp_'+'OIII5006'],lines['g2_Amp_'+'Hb4861'])
                 lrOHb = np.divide((lines['g1_Amp_'+'OIII5006']+lines['g2_Amp_'+'OIII5006']),(lines['g1_Amp_'+'Hb4861']+lines['g2_Amp_'+'Hb4861']))
                 tot = np.column_stack((tot,lrOHbG2,lrOHb))
-                lineNameList.append('OIII5006/Hb4861')
+                lineNameList.append('G2-OIII5006/Hb4861')
+                lineNameList.append('ToT-OIII5006/Hb4861')
                 frmList.append('f8')
-            
+                frmList.append('f8')
+
             
             if 'NII6583' in lineNameID and 'Ha6562' in lineNameID:
                 lrNIIHaG2 = np.divide(lines['g2_Amp_'+'NII6583'],lines['g2_Amp_'+'Ha6562'])
                 lrNIIHa = np.divide((lines['g1_Amp_'+'NII6583']+lines['g2_Amp_'+'NII6583']),(lines['g1_Amp_'+'Ha6562']+lines['g2_Amp_'+'Ha6562']))
                 tot = np.column_stack((tot,lrNIIHaG2,lrNIIHa))
-                lineNameList.append('NII6583/Ha6562')
+                lineNameList.append('G2-NII6583/Ha6562')
+                lineNameList.append('ToT-NII6583/Ha6562')
                 frmList.append('f8')
+                frmList.append('f8')
+
 
             if 'OI6300' in lineNameID and 'Ha6562' in lineNameID:
                 lrOIHaG2 = np.divide(lines['g2_Amp_'+'OI6300'],lines['g2_Amp_'+'Ha6562'])
                 lrOIHa = np.divide((lines['g1_Amp_'+'OI6300']+lines['g2_Amp_'+'OI6300']),(lines['g1_Amp_'+'Ha6562']+lines['g2_Amp_'+'Ha6562']))
                 tot = np.column_stack((tot,lrOIHaG2,lrOIHa))
-                lineNameList.append('OI6300/Ha6562')
+                lineNameList.append('G2-OI6300/Ha6562')
+                lineNameList.append('ToT-OI6300/Ha6562')
                 frmList.append('f8')
+                frmList.append('f8')
+
 
             if 'SII6716' in lineNameID and 'Ha6562' in lineNameID:
                 lrSIIHaG2 = np.divide((lines['g2_Amp_'+'SII6716']+lines['g2_Amp_'+'SII6730']),lines['g2_Amp_'+'Ha6562'])
                 lrSIIHa = np.divide((lines['g1_Amp_'+'SII6716']+lines['g1_Amp_'+'SII6730']+lines['g2_Amp_'+'SII6716']+lines['g2_Amp_'+'SII6730']),(lines['g1_Amp_'+'Ha6562']+lines['g2_Amp_'+'Ha6562']))
                 tot = np.column_stack((tot,lrSIIHaG2,lrSIIHa))
-                lineNameList.append('SII6716/Ha6562')
+                lineNameList.append('G2-SII6716/Ha6562')
+                lineNameList.append('ToT-SII6716/Ha6562')
+                frmList.append('f8')
                 frmList.append('f8')
 
             if modName == 'g3':
@@ -1005,44 +1031,234 @@ class gplay:
                     lrOHb = np.divide((lines['g1_Amp_'+'OIII5006']+lines['g2_Amp_'+'OIII5006']+lines['g3_Amp_'+'OIII5006']),(lines['g1_Amp_'+'Hb4861']+
                         lines['g2_Amp_'+'Hb4861']+lines['g3_Amp_'+'Hb4861']))
                     tot = np.column_stack((tot,lrOHbG3))
-                    lineNameList.append('OIII5006/Hb4861')
+                    lineNameList.append('G3-OIII5006/Hb4861')
+                    lineNameList.append('ToT-OIII5006/Hb4861')
                     frmList.append('f8')
+                    frmList.append('f8')
+
                 
                 if 'NII6583' in lineNameID and 'Ha6562' in lineNameID:
-                    lrNIIHaG2 = np.divide(lines['g3_Amp_'+'NII6583'],lines['g3_Amp_'+'Ha6562'])
+                    lrNIIHaG3 = np.divide(lines['g3_Amp_'+'NII6583'],lines['g3_Amp_'+'Ha6562'])
                     lrNIIHa = np.divide((lines['g1_Amp_'+'NII6583']+lines['g2_Amp_'+'NII6583']+lines['g3_Amp_'+'NII6583']),(lines['g1_Amp_'+'Ha6562']+
                         lines['g2_Amp_'+'Ha6562']+lines['g3_Amp_'+'Ha6562']))
-                    tot = np.column_stack((tot,lrNIIHaG2,lrNIIHa))
-                    lineNameList.append('NII6583/Hb4861')
+                    tot = np.column_stack((tot,lrNIIHaG3,lrNIIHa))
+                    lineNameList.append('G3-NII6583/Hb4861')
+                    lineNameList.append('ToT-NII6583/Hb4861')
                     frmList.append('f8')
+                    frmList.append('f8')
+
 
                 if 'OI6300' in lineNameID and 'Ha6562' in lineNameID:
-                    lrOIHaG2 = np.divide(lines['g3_Amp_'+'OI6300'],lines['g3_Amp_'+'Ha6562'])
+                    lrOIHaG3 = np.divide(lines['g3_Amp_'+'OI6300'],lines['g3_Amp_'+'Ha6562'])
                     lrOIHa = np.divide((lines['g1_Amp_'+'OI6300']+lines['g2_Amp_'+'OI6300']+lines['g3_Amp_'+'OI6300']),(lines['g1_Amp_'+'Ha6562']+
                         lines['g2_Amp_'+'Ha6562']+lines['g3_Amp_'+'Ha6562']))
-                    tot = np.column_stack((tot,lrOIHaG2,lrOIHa))
-                    lineNameList.append('OI6300/Ha6562')
+                    tot = np.column_stack((tot,lrOIHaG3,lrOIHa))
+                    lineNameList.append('G3-OI6300/Ha6562')
+                    lineNameList.append('ToT-OI6300/Ha6562')
                     frmList.append('f8')
+                    frmList.append('f8')
+
 
                 if 'SII6716' in lineNameID and 'Ha6562' in lineNameID:
-                    lrSIIHaG2 = np.divide((lines['g2_Amp_'+'SII6716']+lines['g2_Amp_'+'SII6730']),lines['g2_Amp_'+'Ha6562'])
+                    lrSIIHaG3 = np.divide((lines['g2_Amp_'+'SII6716']+lines['g2_Amp_'+'SII6730']),lines['g2_Amp_'+'Ha6562'])
                     lrSIIHa = np.divide((lines['g1_Amp_'+'SII6716']+lines['g1_Amp_'+'SII6730']+lines['g2_Amp_'+'SII6716']+lines['g2_Amp_'+'SII6730']+lines['g3_Amp_'+'SII6716']+lines['g3_Amp_'+'SII6730']),
                         (lines['g1_Amp_'+'Ha6562']+lines['g2_Amp_'+'Ha6562']+lines['g3_Amp_'+'Ha6562']))
-                    tot = np.column_stack((tot,lrSIIHaG2,lrSIIHa))
-                    lineNameList.append('SII6716/Ha6562')
+                    tot = np.column_stack((tot,lrSIIHaG3,lrSIIHa))
+                    lineNameList.append('G3-SII6716/Ha6562')
+                    lineNameList.append('ToT-SII6716/Ha6562')
+                    frmList.append('f8')
                     frmList.append('f8')
 
-        print tot.shape
-        print lineNameList
-        print len(lineNameList)
+
         t = Table(tot, names=(lineNameList))
-        
+
         hdul.append(fits.BinTableHDU(t.as_array(), name='LineRatios_'+modName))
 
-        #tRatio = fits.BinTableHDU.from_columns(tot,name='LineRatios_'+modName)
+
+        indexSFK = np.where(np.logical_and(np.logical_and(np.log10(t['G1-OIII5006/Hb4861']) < 0.61 / (np.log10(t['G1-NII6583/Ha6562']) - 0.05) + 1.3,
+            np.log10(t['G1-OIII5006/Hb4861'])<3),
+            np.log10(t['G1-NII6583/Ha6562'])<1.))
+        indexSF = np.where(np.logical_and(np.logical_and(np.logical_and(np.log10(t['G1-OIII5006/Hb4861']) < 0.61 / (np.log10(t['G1-NII6583/Ha6562']) - 0.47) + 1.19, 
+            np.log10(t['G1-OIII5006/Hb4861']) >= 0.61 / (np.log10(t['G1-NII6583/Ha6562']) - 0.05) + 1.3),
+            np.log10(t['G1-OIII5006/Hb4861'])<3.),
+            np.log10(t['G1-NII6583/Ha6562'])<1.))
+        indexAGN  = np.where(np.logical_and(np.logical_and(np.log10(t['G1-OIII5006/Hb4861']) >= 0.61 / (np.log10(t['G1-NII6583/Ha6562']) - 0.47) + 1.19,
+            np.log10(t['G1-OIII5006/Hb4861'])<3.),
+            np.log10(t['G1-NII6583/Ha6562'])<1.))
         
-        #hdul.append(tRatio)  
+        LrOIII  = np.zeros(len(lines['BIN_ID']))*np.nan
+        LrOIII[indexSFK] = 0.
+        LrOIII[indexSF] = 1.
+        LrOIII[indexAGN] = 2.
+
+
+        indexSF = np.where(np.logical_and.reduce((np.log10(t['G1-OIII5006/Hb4861']) < 0.72 / (np.log10(t['G1-SII6716/Ha6562']) - 0.32) + 1.30,
+                            np.log10(t['G1-OIII5006/Hb4861'])<3.,
+                            np.log10(t['G1-SII6716/Ha6562'])<0.5,
+                            np.log10(t['G1-OIII5006/Hb4861'])>=-2.,
+                            np.log10(t['G1-SII6716/Ha6562'])>=-2.)))
+        indexSey = np.where(np.logical_and.reduce((np.log10(t['G1-OIII5006/Hb4861']) >= 0.72 / (np.log10(t['G1-SII6716/Ha6562']) - 0.32) + 1.30, 
+            np.log10(t['G1-OIII5006/Hb4861']) > 1.89* np.log10(t['G1-SII6716/Ha6562']) + 0.76,
+                            np.log10(t['G1-OIII5006/Hb4861'])<3.,
+                            np.log10(t['G1-SII6716/Ha6562'])<0.5,
+                            np.log10(t['G1-OIII5006/Hb4861'])>=-2.,
+                            np.log10(t['G1-SII6716/Ha6562'])>=-2.)))
+        indexLIN = np.where(np.logical_and.reduce((np.log10(t['G1-OIII5006/Hb4861']) >= 0.72 / (np.log10(t['G1-SII6716/Ha6562']) - 0.32) + 1.30,
+            np.log10(t['G1-OIII5006/Hb4861']) < 1.89*np.log10(t['G1-SII6716/Ha6562']) + 0.76,
+                            np.log10(t['G1-OIII5006/Hb4861'])<3.,
+                            np.log10(t['G1-SII6716/Ha6562'])<0.5,
+                            np.log10(t['G1-OIII5006/Hb4861'])>=-2.,
+                            np.log10(t['G1-SII6716/Ha6562'])>=-2.)))
+
+        LrSII  = np.zeros(len(lines['BIN_ID']))*np.nan
+        LrSII[indexSF] = 0.
+        LrSII[indexSey] = 1.
+        LrSII[indexLIN] = 2.
+
+        indexSF = np.where(np.logical_and.reduce((np.log10(t['G1-OIII5006/Hb4861']) < 0.73 / (np.log10(t['G1-OI6300/Ha6562']) + 0.59) + 1.33,
+            np.log10(t['G1-OIII5006/Hb4861'])<3.,
+            np.log10(t['G1-OI6300/Ha6562'])<1.,
+            np.log10(t['G1-OIII5006/Hb4861'])>=-2.,            
+            np.log10(t['G1-OI6300/Ha6562'])>=-3.)))
         
+        indexSey = np.where(np.logical_and.reduce((np.log10(t['G1-OIII5006/Hb4861']) >= 0.73 / (np.log10(t['G1-OI6300/Ha6562']) + 0.59) +1.33,
+            np.log10(t['G1-OIII5006/Hb4861']) >= 1.18* np.log10(t['G1-OI6300/Ha6562']) + 1.30,
+            np.log10(t['G1-OIII5006/Hb4861'])<3.,
+            np.log10(t['G1-OI6300/Ha6562'])<1.,
+            np.log10(t['G1-OIII5006/Hb4861'])>=-2.,            
+            np.log10(t['G1-OI6300/Ha6562'])>=-3.)))
+        
+        indexLIN = np.where(np.logical_and.reduce((np.log10(t['G1-OIII5006/Hb4861']) >= 0.73 / (np.log10(t['G1-OI6300/Ha6562']) + 0.59)+1.33, 
+            np.log10(t['G1-OIII5006/Hb4861']) < 1.18* np.log10(t['G1-OI6300/Ha6562']) + 1.30,
+            np.log10(t['G1-OIII5006/Hb4861'])<3.,
+            np.log10(t['G1-OI6300/Ha6562'])<1.,
+            np.log10(t['G1-OIII5006/Hb4861'])>=-2.,            
+            np.log10(t['G1-OI6300/Ha6562'])>=-3.)))
+
+        LrOI  = np.zeros(len(lines['BIN_ID']))*np.nan
+        LrOI[indexSF] = 0.
+        LrOI[indexSey] = 1.
+        LrOI[indexLIN] = 2.
+
+        tt=Table([lines['BIN_ID'],LrOIII,LrSII,LrOI],names=('BIN_ID','G1-BPT_OIII','G1-BPT_SII','G1-BPT_OI'))
+
+        if modName != 'g1':
+
+            indexSFK = np.where(np.log10(t['G2-OIII5006/Hb4861']) < 0.61 / (np.log10(t['G2-NII6583/Ha6562']) - 0.05) + 1.3)
+            indexSF = np.where(np.logical_and(np.log10(t['G2-OIII5006/Hb4861']) < 0.61 / (np.log10(t['G2-NII6583/Ha6562']) - 0.47) + 1.19, 
+                np.log10(t['G2-OIII5006/Hb4861']) >= 0.61 / (np.log10(t['G2-NII6583/Ha6562']) - 0.05) + 1.3))
+            indexAGN  = np.where((np.log10(t['G2-OIII5006/Hb4861']) >= 0.61 / (np.log10(t['G2-NII6583/Ha6562']) - 0.47) + 1.19))    
+            
+            LrOIII  = np.zeros(len(lines['BIN_ID']))*np.nan
+            LrOIII[indexSFK] = 0.
+            LrOIII[indexSF] = 1.
+            LrOIII[indexAGN] = 2.
+
+
+            indexSF = np.where(np.log10(t['G2-OIII5006/Hb4861']) < 0.72 / (np.log10(t['G2-SII6716/Ha6562']) - 0.32) + 1.30)
+            indexSey = np.where(np.logical_and(np.log10(t['G2-OIII5006/Hb4861']) >= 0.72 / (np.log10(t['G2-SII6716/Ha6562']) - 0.32) + 1.30, 
+                np.log10(t['G2-OIII5006/Hb4861']) > 1.89* np.log10(t['G1-SII6716/Ha6562']) + 0.76))
+            indexLIN = np.where(np.logical_and(np.log10(t['G2-OIII5006/Hb4861']) >= 0.72 / (np.log10(t['G2-SII6716/Ha6562']) - 0.32) + 1.30,
+                np.log10(t['G2-OIII5006/Hb4861']) < 1.89*np.log10(t['G2-SII6716/Ha6562']) + 0.76))
+
+            LrSII  = np.zeros(len(lines['BIN_ID']))*np.nan
+            LrSII[indexSF] = 0.
+            LrSII[indexSey] = 1.
+            LrSII[indexLIN] = 2.
+
+            indexSF = np.where(np.log10(t['G2-OIII5006/Hb4861']) < 0.73 / (np.log10(t['G2-OI6300/Ha6562']) + 0.59) + 1.33)
+            indexSey = np.where(np.logical_and( np.log10(t['G2-OIII5006/Hb4861']) >= 0.73 / (np.log10(t['G2-OI6300/Ha6562']) + 0.59) +1.33,
+                np.log10(t['G2-OIII5006/Hb4861']) >= 1.18* np.log10(t['G2-OI6300/Ha6562']) + 1.30))
+            indexLIN = np.where(np.logical_and( np.log10(t['G2-OIII5006/Hb4861']) >= 0.73 / (np.log10(t['G2-OI6300/Ha6562']) + 0.59)+1.33, 
+                np.log10(t['G2-OIII5006/Hb4861']) < 1.18* np.log10(t['G2-OI6300/Ha6562']) + 1.30))
+
+            LrOI  = np.zeros(len(lines['BIN_ID']))*np.nan
+            LrOI[indexSF] = 0.
+            LrOI[indexSey] = 1.
+            LrOI[indexLIN] = 2.
+
+            tt.add_column(Column(LrOIII,name='G2-BPT_OIII'))
+            tt.add_column(Column(LrSII,name='G2-BPT_SII'))
+            tt.add_column(Column(LrOI,name='G2-BPT_OI'))
+
+            indexSFK = np.where(np.log10(t['ToT-OIII5006/Hb4861']) < 0.61 / (np.log10(t['ToT-NII6583/Ha6562']) - 0.05) + 1.3)
+            indexSF = np.where(np.logical_and(np.log10(t['ToT-OIII5006/Hb4861']) < 0.61 / (np.log10(t['ToT-NII6583/Ha6562']) - 0.47) + 1.19, 
+                np.log10(t['ToT-OIII5006/Hb4861']) >= 0.61 / (np.log10(t['ToT-NII6583/Ha6562']) - 0.05) + 1.3))
+            indexAGN  = np.where((np.log10(t['ToT-OIII5006/Hb4861']) >= 0.61 / (np.log10(t['ToT-NII6583/Ha6562']) - 0.47) + 1.19))    
+            
+            LrOIII  = np.zeros(len(lines['BIN_ID']))*np.nan
+            LrOIII[indexSFK] = 0.
+            LrOIII[indexSF] = 1.
+            LrOIII[indexAGN] = 2.
+
+
+            indexSF = np.where(np.log10(t['ToT-OIII5006/Hb4861']) < 0.72 / (np.log10(t['ToT-SII6716/Ha6562']) - 0.32) + 1.30)
+            indexSey = np.where(np.logical_and(np.log10(t['ToT-OIII5006/Hb4861']) >= 0.72 / (np.log10(t['ToT-SII6716/Ha6562']) - 0.32) + 1.30, 
+                np.log10(t['ToT-OIII5006/Hb4861']) > 1.89* np.log10(t['G1-SII6716/Ha6562']) + 0.76))
+            indexLIN = np.where(np.logical_and(np.log10(t['ToT-OIII5006/Hb4861']) >= 0.72 / (np.log10(t['ToT-SII6716/Ha6562']) - 0.32) + 1.30,
+                np.log10(t['ToT-OIII5006/Hb4861']) < 1.89*np.log10(t['ToT-SII6716/Ha6562']) + 0.76))
+
+            LrSII  = np.zeros(len(lines['BIN_ID']))*np.nan
+            LrSII[indexSF] = 0.
+            LrSII[indexSey] = 1.
+            LrSII[indexLIN] = 2.
+
+            indexSF = np.where(np.log10(t['ToT-OIII5006/Hb4861']) < 0.73 / (np.log10(t['ToT-OI6300/Ha6562']) + 0.59) + 1.33)
+            indexSey = np.where(np.logical_and( np.log10(t['ToT-OIII5006/Hb4861']) >= 0.73 / (np.log10(t['ToT-OI6300/Ha6562']) + 0.59) +1.33,
+                np.log10(t['ToT-OIII5006/Hb4861']) >= 1.18* np.log10(t['ToT-OI6300/Ha6562']) + 1.30))
+            indexLIN = np.where(np.logical_and( np.log10(t['ToT-OIII5006/Hb4861']) >= 0.73 / (np.log10(t['ToT-OI6300/Ha6562']) + 0.59)+1.33, 
+                np.log10(t['ToT-OIII5006/Hb4861']) < 1.18* np.log10(t['ToT-OI6300/Ha6562']) + 1.30))
+
+            LrOI  = np.zeros(len(lines['BIN_ID']))*np.nan
+            LrOI[indexSF] = 0.
+            LrOI[indexSey] = 1.
+            LrOI[indexLIN] = 2.
+
+            tt.add_column(Column(LrOIII,name='ToT-BPT_OIII'))
+            tt.add_column(Column(LrSII,name='ToT-BPT_SII'))
+            tt.add_column(Column(LrOI,name='ToT-BPT_OI'))
+
+            if modName == 'g3':
+
+                indexSFK = np.where(np.log10(t['G3-OIII5006/Hb4861']) < 0.61 / (np.log10(t['G3-NII6583/Ha6562']) - 0.05) + 1.3)
+                indexSF = np.where(np.logical_and(np.log10(t['G3-OIII5006/Hb4861']) < 0.61 / (np.log10(t['G3-NII6583/Ha6562']) - 0.47) + 1.19, 
+                    np.log10(t['G3-OIII5006/Hb4861']) >= 0.61 / (np.log10(t['G3-NII6583/Ha6562']) - 0.05) + 1.3))
+                indexAGN  = np.where((np.log10(t['G3-OIII5006/Hb4861']) >= 0.61 / (np.log10(t['G3-NII6583/Ha6562']) - 0.47) + 1.19))    
+                
+                LrOIII  = np.zeros(len(lines['BIN_ID']))*np.nan
+                LrOIII[indexSFK] = 0.
+                LrOIII[indexSF] = 1.
+                LrOIII[indexAGN] = 2.
+
+
+                indexSF = np.where(np.log10(t['G3-OIII5006/Hb4861']) < 0.72 / (np.log10(t['G3-SII6716/Ha6562']) - 0.32) + 1.30)
+                indexSey = np.where(np.logical_and(np.log10(t['G3-OIII5006/Hb4861']) >= 0.72 / (np.log10(t['G3-SII6716/Ha6562']) - 0.32) + 1.30, 
+                    np.log10(t['G3-OIII5006/Hb4861']) > 1.89* np.log10(t['G1-SII6716/Ha6562']) + 0.76))
+                indexLIN = np.where(np.logical_and(np.log10(t['G3-OIII5006/Hb4861']) >= 0.72 / (np.log10(t['G3-SII6716/Ha6562']) - 0.32) + 1.30,
+                    np.log10(t['G3-OIII5006/Hb4861']) < 1.89*np.log10(t['G3-SII6716/Ha6562']) + 0.76))
+
+                LrSII  = np.zeros(len(lines['BIN_ID']))*np.nan
+                LrSII[indexSF] = 0.
+                LrSII[indexSey] = 1.
+                LrSII[indexLIN] = 2.
+
+                indexSF = np.where(np.log10(t['G3-OIII5006/Hb4861']) < 0.73 / (np.log10(t['G3-OI6300/Ha6562']) + 0.59) + 1.33)
+                indexSey = np.where(np.logical_and( np.log10(t['G3-OIII5006/Hb4861']) >= 0.73 / (np.log10(t['G3-OI6300/Ha6562']) + 0.59) +1.33,
+                    np.log10(t['G3-OIII5006/Hb4861']) >= 1.18* np.log10(t['G3-OI6300/Ha6562']) + 1.30))
+                indexLIN = np.where(np.logical_and( np.log10(t['G3-OIII5006/Hb4861']) >= 0.73 / (np.log10(t['G3-OI6300/Ha6562']) + 0.59)+1.33, 
+                    np.log10(t['G3-OIII5006/Hb4861']) < 1.18* np.log10(t['G3-OI6300/Ha6562']) + 1.30))
+
+                LrOI  = np.zeros(len(lines['BIN_ID']))*np.nan
+                LrOI[indexSF] = 0.
+                LrOI[indexSey] = 1.
+                LrOI[indexLIN] = 2.
+
+                tt.add_column(Column(LrOIII,name='G3-BPT_OIII'))
+                tt.add_column(Column(LrSII,name='G3-BPT_SII'))
+                tt.add_column(Column(LrOI,name='G3-BPT_OI'))
+
+
+        hdul.append(fits.BinTableHDU(tt.as_array(), name='BPT_'+modName))
         hdul.writeto(self.cfg_par['general']['outTableName'],overwrite=True)
 
         

@@ -1,28 +1,28 @@
-## Radiobs
+## Gufo
 
-tools for radioastronomy data analysis
+tools to fit multiple gaussians in datacubes
 
 ### Installation
 
 Add `<path to radiobs>` to `PYTHONPATH`
   
   - in your `.cshrc`
-  `setenv PYTHONPATH <path_to_radiobs>:${PYTHONPATH}`
+  `setenv PYTHONPATH <path_to_gufo>:${PYTHONPATH}`
   - in your `.bashrc`
-  `export PYTHONPATH=<path_to_radiobs>:$PYTHONPATH`
+  `export PYTHONPATH=<path_to_gufo>:$PYTHONPATH`
   
 ### Usage
- In `python` environment type `import radiobs`
+ In `python` environment type `import gufo`
  
  find which classes are available.
  
- `radiobs.__dict__.keys()`
+ `gufo.__dict__.keys()`
  
- We choose to determine the expected frequency of the HI line at a given redshift, we need  `hiline` contained in the class `hi`. Let's load the class:
+ We choose to load the table containind the information about the lines to:
  
- `hi = radiobs.hi()`
+ `tp= gufo.tPlay()`
  
   use the module:
- `freq = hi.hiline(z=0.1)`
+ `lineInfo = tp.openLineList()`
 
  

@@ -1,5 +1,4 @@
 include README.md
 include LICENSE.md
 include requirements.txt
-include rfinder/rfinder_default.yml
-recursive-include rfinder/templates *.html
+include raptors/gPlay_default.yml

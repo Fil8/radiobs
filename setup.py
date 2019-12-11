@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-pkg = 'gufo'
+pkg = 'radiobs'
 build_root = os.path.dirname(__file__)
 
 scripts = ["bin/" + i for i in os.listdir("bin")]
@@ -22,7 +22,7 @@ __version__ = "1.0.0"
 
 setup(name=pkg,
       version=__version__,
-      description="A set of tools to fit multple gaussians in datacubes",
+      description="A set of tools for the analysis of radio astronomical observations",
       long_description=readme(),
       author="Filippo Marcello Maccagni",
       author_email="filippo.maccagni@gmail.com",
@@ -32,7 +32,7 @@ setup(name=pkg,
       #    'rfinder': ['rfinder_default.yml',
       #                'templates/*.html']
       #},
-      url="https://github.com/Fil8/gufo",
+      url="https://github.com/Fil8/radiobs",
       license="GNU GPL 3",
       classifiers=["Intended Audience :: Developers",
                    "Programming Language :: Python :: 2",

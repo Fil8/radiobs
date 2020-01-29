@@ -10,6 +10,7 @@ ants/cvMe.py
 ants/fitSource.py
 ants/fitsPlay.py
 ants/fluxInt.py
+ants/gPlay.py
 ants/headPlay.py
 ants/pbCorr.py
 ants/synCl.py

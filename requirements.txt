@@ -4,3 +4,6 @@ scipy
 pyregion==1.2.0
 prettyTable
 lmfit
+pyaml
+matplotlib
+aplpy
